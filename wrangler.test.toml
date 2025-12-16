@@ -26,3 +26,5 @@ id = "d45eef82c64443939acaa1dc2b45aa95"
 ENVIRONMENT = "test"
 ANALYTICS_SINK = "kv"
 # Configure NEXTAUTH_SECRET via `wrangler secret put NEXTAUTH_SECRET` to keep secrets out of source control
+# Configure STRIPE_SECRET_KEY via `wrangler secret put STRIPE_SECRET_KEY`
+# Configure STRIPE_WEBHOOK_SECRET via `wrangler secret put STRIPE_WEBHOOK_SECRET`

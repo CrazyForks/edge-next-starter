@@ -26,6 +26,8 @@ id = "52ca46605f5d4d0698f4d0bceac713a1"
 ENVIRONMENT = "production"
 ANALYTICS_SINK = "engine"
 # Configure NEXTAUTH_SECRET via `wrangler secret put NEXTAUTH_SECRET` to avoid committing secrets
+# Configure STRIPE_SECRET_KEY via `wrangler secret put STRIPE_SECRET_KEY`
+# Configure STRIPE_WEBHOOK_SECRET via `wrangler secret put STRIPE_WEBHOOK_SECRET`
 
 # Analytics Engine dataset binding
 [[analytics_engine_datasets]]

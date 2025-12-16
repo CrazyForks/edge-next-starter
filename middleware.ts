@@ -17,9 +17,12 @@ export default auth(req => {
     '/terms', // Terms of service page
     '/login', // Login page
     '/register', // Register page
+    '/pricing', // Pricing page
+    '/checkout/cancel', // Checkout cancel page
     '/api/auth', // NextAuth API routes
     '/api/health', // Health check endpoint
     '/api/register', // User registration endpoint
+    '/api/stripe/webhook', // Stripe webhook endpoint
   ];
 
   // Check if current path is public

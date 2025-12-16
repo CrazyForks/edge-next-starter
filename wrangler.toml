@@ -55,3 +55,8 @@ SLOW_QUERY_THRESHOLD_MS = "1000"
 
 # Authentication configuration
 NEXTAUTH_SECRET = "dev-secret"
+
+# Stripe payment integration (use test keys for local development)
+# Configure via `wrangler secret put STRIPE_SECRET_KEY` for remote environments
+STRIPE_SECRET_KEY = "sk_test_xxx"
+STRIPE_WEBHOOK_SECRET = "whsec_xxx"
