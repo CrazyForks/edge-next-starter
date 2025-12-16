@@ -23,6 +23,7 @@ model User {
   posts         Post[]
   accounts      Account[] // OAuth account associations
   sessions      Session[] // Session management
+  customer      Customer? // Stripe customer association
 
   @@index([email])
   @@index([createdAt])
@@ -88,4 +89,119 @@ model Post {
   @@index([published])
   @@index([createdAt])
   @@map("posts")
+}
+
+// Stripe customer table - maps users to Stripe customer IDs
+model Customer {
+  id               Int            @id @default(autoincrement())
+  userId           Int            @unique @map("user_id")
+  stripeCustomerId String         @unique @map("stripe_customer_id")
+  email            String?
+  name             String?
+  metadata         String?        // JSON string for additional data
+  createdAt        Int            @default(dbgenerated("(strftime('%s', 'now'))")) @map("created_at")
+  updatedAt        Int            @default(dbgenerated("(strftime('%s', 'now'))")) @map("updated_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@map("customers")
+}
+
+// Stripe payment table - one-time payment records
+model Payment {
+  id                      Int     @id @default(autoincrement())
+  customerId              Int     @map("customer_id")
+  stripePaymentIntentId   String? @unique @map("stripe_payment_intent_id")
+  stripeCheckoutSessionId String? @unique @map("stripe_checkout_session_id")
+  amount                  Int     // Amount in cents
+  currency                String  @default("usd")
+  status                  String  // succeeded, pending, failed, canceled
+  description             String?
+  metadata                String? // JSON string for additional data
+  createdAt               Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("created_at")
+  updatedAt               Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([stripePaymentIntentId])
+  @@index([stripeCheckoutSessionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+// Stripe subscription table - recurring subscription records
+model Subscription {
+  id                 Int     @id @default(autoincrement())
+  customerId         Int     @map("customer_id")
+  stripeSubscriptionId String @unique @map("stripe_subscription_id")
+  stripePriceId      String  @map("stripe_price_id")
+  status             String  // active, canceled, incomplete, incomplete_expired, past_due, trialing, unpaid
+  currentPeriodStart Int?    @map("current_period_start")
+  currentPeriodEnd   Int?    @map("current_period_end")
+  cancelAtPeriodEnd  Int     @default(0) @map("cancel_at_period_end") // Boolean as integer
+  canceledAt         Int?    @map("canceled_at")
+  endedAt            Int?    @map("ended_at")
+  trialStart         Int?    @map("trial_start")
+  trialEnd           Int?    @map("trial_end")
+  metadata           String? // JSON string for additional data
+  createdAt          Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("created_at")
+  updatedAt          Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("updated_at")
+
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([customerId])
+  @@index([stripeSubscriptionId])
+  @@index([stripePriceId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+// Stripe invoice table - invoice records
+model Invoice {
+  id              Int     @id @default(autoincrement())
+  customerId      Int     @map("customer_id")
+  subscriptionId  Int?    @map("subscription_id")
+  stripeInvoiceId String  @unique @map("stripe_invoice_id")
+  amountDue       Int     @map("amount_due") // Amount in cents
+  amountPaid      Int     @default(0) @map("amount_paid") // Amount in cents
+  currency        String  @default("usd")
+  status          String  // draft, open, paid, uncollectible, void
+  invoiceUrl      String? @map("invoice_url")
+  invoicePdf      String? @map("invoice_pdf")
+  periodStart     Int?    @map("period_start")
+  periodEnd       Int?    @map("period_end")
+  createdAt       Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("created_at")
+  updatedAt       Int     @default(dbgenerated("(strftime('%s', 'now'))")) @map("updated_at")
+
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([subscriptionId])
+  @@index([stripeInvoiceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+// Stripe webhook events table - for idempotency
+model WebhookEvent {
+  id            Int    @id @default(autoincrement())
+  stripeEventId String @unique @map("stripe_event_id")
+  eventType     String @map("event_type")
+  processedAt   Int    @default(dbgenerated("(strftime('%s', 'now'))")) @map("processed_at")
+
+  @@index([stripeEventId])
+  @@index([eventType])
+  @@index([processedAt])
+  @@map("webhook_events")
 }
