@@ -1,15 +1,27 @@
 /**
  * NextAuth Authentication Configuration
  * Supports credentials login (email + password) and Google OAuth
+ *
+ * Security features:
+ * - Constant-time password verification to prevent user enumeration
+ * - JWT session strategy for Edge Runtime compatibility
+ * - Secure password hashing with PBKDF2
  */
 
 import NextAuth from 'next-auth';
 import type { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import { verifyPassword } from '@/lib/auth/password';
+import { verifyPassword, hashPassword } from '@/lib/auth/password';
 import { prisma } from '@/lib/db/client';
 import { PrismaAdapter } from '@/lib/auth/adapter';
+
+/**
+ * Dummy password hash used for constant-time verification
+ * This prevents user enumeration by ensuring the same amount of time
+ * is spent whether a user exists or not
+ */
+const DUMMY_PASSWORD_HASH = await hashPassword('dummy_password_for_timing_attack_prevention');
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
@@ -43,6 +55,7 @@ export const authConfig: NextAuthConfig = {
     }),
 
     // Credentials login (email + password)
+    // Security: Uses constant-time verification to prevent user enumeration
     Credentials({
       name: 'credentials',
       credentials: {
@@ -54,17 +67,36 @@ export const authConfig: NextAuthConfig = {
           throw new Error('Please provide email and password');
         }
 
+        // Fetch user from database
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
 
-        if (!user || !user.password) {
-          throw new Error('Invalid email or password');
+        // SECURITY: Always perform password verification to prevent timing attacks
+        // This ensures consistent response time regardless of whether user exists
+        let isValid = false;
+
+        if (user?.password) {
+          // User exists and has a password - verify it
+          try {
+            isValid = await verifyPassword(credentials.password as string, user.password);
+          } catch {
+            // Password verification failed (e.g., invalid hash format)
+            isValid = false;
+          }
+        } else {
+          // User doesn't exist or has no password
+          // Still perform verification against dummy hash to maintain constant time
+          try {
+            await verifyPassword(credentials.password as string, DUMMY_PASSWORD_HASH);
+          } catch {
+            // Expected to fail, just consuming time
+          }
+          isValid = false;
         }
 
-        const isPasswordValid = await verifyPassword(credentials.password as string, user.password);
-
-        if (!isPasswordValid) {
+        // Return appropriate response
+        if (!isValid || !user) {
           throw new Error('Invalid email or password');
         }
 
