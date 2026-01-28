@@ -1,6 +1,58 @@
 import { getCloudflareEnv } from '@/lib/db/client';
 import { analytics } from '@/lib/analytics';
 
+// =============================================================================
+// Cache Keys - Centralized key management for consistency
+// =============================================================================
+
+/**
+ * Cache key generators for consistent key naming across the application
+ */
+export const CACHE_KEYS = {
+  // User cache keys
+  USERS_ALL: 'users:all',
+  USER: (id: number) => `user:${id}`,
+  USER_BY_EMAIL: (email: string) => `user:email:${email.toLowerCase()}`,
+
+  // Post cache keys
+  POSTS_ALL: 'posts:all',
+  POSTS_PAGE: (page: number, limit: number) => `posts:page:${page}:${limit}`,
+  POSTS_BY_USER: (userId: number) => `posts:user:${userId}`,
+  POST: (id: number) => `post:${id}`,
+
+  // Subscription cache keys
+  SUBSCRIPTION: (userId: number) => `subscription:user:${userId}`,
+  SUBSCRIPTION_STATUS: (customerId: number) => `subscription:status:${customerId}`,
+
+  // Customer cache keys
+  CUSTOMER: (userId: number) => `customer:user:${userId}`,
+  CUSTOMER_BY_STRIPE: (stripeCustomerId: string) => `customer:stripe:${stripeCustomerId}`,
+} as const;
+
+/**
+ * Cache TTL values (in seconds)
+ */
+export const CACHE_TTL = {
+  // Short-lived cache for frequently changing data
+  SHORT: 30, // 30 seconds
+
+  // Medium-lived cache for moderately changing data
+  MEDIUM: 60, // 1 minute
+
+  // Long-lived cache for relatively static data
+  LONG: 300, // 5 minutes
+
+  // Very long-lived cache for rarely changing data
+  EXTENDED: 3600, // 1 hour
+
+  // Specific TTLs
+  USER_LIST: 60, // 1 minute
+  USER_SINGLE: 300, // 5 minutes
+  POSTS_LIST: 120, // 2 minutes
+  POST_SINGLE: 300, // 5 minutes
+  SUBSCRIPTION: 30, // 30 seconds - sensitive data, short TTL
+} as const;
+
 /**
  * Get KV namespace instance
  */
@@ -143,4 +195,89 @@ export async function withCache<T>(
   await analytics.trackCacheAccess(key, false);
 
   return result;
+}
+
+// =============================================================================
+// Cache Invalidation Utilities
+// =============================================================================
+
+/**
+ * Invalidate user-related cache entries
+ * @param userId - User ID to invalidate cache for
+ */
+export async function invalidateUserCache(userId?: number): Promise<void> {
+  const cache = createCacheClient();
+  if (!cache) return;
+
+  // Always invalidate the all users list
+  await cache.delete(CACHE_KEYS.USERS_ALL);
+
+  // If userId is provided, invalidate specific user cache
+  if (userId !== undefined) {
+    await cache.delete(CACHE_KEYS.USER(userId));
+    await cache.delete(CACHE_KEYS.POSTS_BY_USER(userId));
+  }
+}
+
+/**
+ * Invalidate post-related cache entries
+ * @param postId - Post ID to invalidate
+ * @param userId - User ID who owns the post
+ */
+export async function invalidatePostCache(postId?: number, userId?: number): Promise<void> {
+  const cache = createCacheClient();
+  if (!cache) return;
+
+  // Invalidate all posts list
+  await cache.delete(CACHE_KEYS.POSTS_ALL);
+
+  // Invalidate specific post cache
+  if (postId !== undefined) {
+    await cache.delete(CACHE_KEYS.POST(postId));
+  }
+
+  // Invalidate user's posts cache
+  if (userId !== undefined) {
+    await cache.delete(CACHE_KEYS.POSTS_BY_USER(userId));
+  }
+
+  // Invalidate paginated cache (first few pages)
+  // Note: This is a simple approach; for production, consider using cache tags
+  for (let page = 1; page <= 5; page++) {
+    await cache.delete(CACHE_KEYS.POSTS_PAGE(page, 10));
+    await cache.delete(CACHE_KEYS.POSTS_PAGE(page, 20));
+  }
+}
+
+/**
+ * Invalidate subscription-related cache entries
+ * @param userId - User ID to invalidate subscription cache for
+ * @param customerId - Customer ID to invalidate cache for
+ */
+export async function invalidateSubscriptionCache(
+  userId?: number,
+  customerId?: number
+): Promise<void> {
+  const cache = createCacheClient();
+  if (!cache) return;
+
+  if (userId !== undefined) {
+    await cache.delete(CACHE_KEYS.SUBSCRIPTION(userId));
+    await cache.delete(CACHE_KEYS.CUSTOMER(userId));
+  }
+
+  if (customerId !== undefined) {
+    await cache.delete(CACHE_KEYS.SUBSCRIPTION_STATUS(customerId));
+  }
+}
+
+/**
+ * Invalidate multiple cache keys at once
+ * @param keys - Array of cache keys to invalidate
+ */
+export async function invalidateCacheKeys(keys: string[]): Promise<void> {
+  const cache = createCacheClient();
+  if (!cache) return;
+
+  await Promise.all(keys.map(key => cache.delete(key)));
 }

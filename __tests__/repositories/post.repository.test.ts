@@ -22,7 +22,7 @@ describe('PostRepository', () => {
   });
 
   describe('findAll', () => {
-    it('should return all posts with default options', async () => {
+    it('should return all posts without user by default (N+1 optimization)', async () => {
       const mockPosts = [
         { id: 1, title: 'Post 1', content: 'Content 1', published: true },
         { id: 2, title: 'Post 2', content: 'Content 2', published: false },
@@ -31,6 +31,25 @@ describe('PostRepository', () => {
       mockPrisma.post.findMany.mockResolvedValue(mockPosts);
 
       const result = await repository.findAll();
+
+      expect(result).toEqual(mockPosts);
+      expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
+        where: {},
+        include: undefined,
+        orderBy: { createdAt: 'desc' },
+        skip: undefined,
+        take: undefined,
+      });
+    });
+
+    it('should include user data when includeUser is true', async () => {
+      const mockPosts = [
+        { id: 1, title: 'Post 1', user: { id: 1, email: 'user@test.com', name: 'User 1' } },
+      ];
+
+      mockPrisma.post.findMany.mockResolvedValue(mockPosts);
+
+      const result = await repository.findAll({ includeUser: true });
 
       expect(result).toEqual(mockPosts);
       expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
@@ -59,15 +78,7 @@ describe('PostRepository', () => {
 
       expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
         where: { userId: 1 },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: undefined,
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
@@ -83,15 +94,7 @@ describe('PostRepository', () => {
 
       expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
         where: { published: true },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: undefined,
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
@@ -107,27 +110,20 @@ describe('PostRepository', () => {
 
       expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
         where: {},
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: undefined,
         orderBy: { createdAt: 'desc' },
         skip: 10,
         take: 5,
       });
     });
 
-    it('should combine all filters', async () => {
+    it('should combine all filters with user include', async () => {
       await repository.findAll({
         userId: 1,
         published: true,
         skip: 0,
         take: 10,
+        includeUser: true,
       });
 
       expect(mockPrisma.post.findMany).toHaveBeenCalledWith({
@@ -188,7 +184,7 @@ describe('PostRepository', () => {
   });
 
   describe('findById', () => {
-    it('should return post by id with user info', async () => {
+    it('should return post by id with user info by default', async () => {
       const mockPost = {
         id: 1,
         title: 'Post 1',
@@ -215,6 +211,24 @@ describe('PostRepository', () => {
       });
     });
 
+    it('should return post without user info when includeUser is false', async () => {
+      const mockPost = {
+        id: 1,
+        title: 'Post 1',
+        content: 'Content 1',
+      };
+
+      mockPrisma.post.findUnique.mockResolvedValue(mockPost);
+
+      const result = await repository.findById(1, false);
+
+      expect(result).toEqual(mockPost);
+      expect(mockPrisma.post.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        include: undefined,
+      });
+    });
+
     it('should return null if post not found', async () => {
       mockPrisma.post.findUnique.mockResolvedValue(null);
 
@@ -225,7 +239,7 @@ describe('PostRepository', () => {
   });
 
   describe('create', () => {
-    it('should create post successfully', async () => {
+    it('should create post with user info by default', async () => {
       const createData = {
         userId: 1,
         title: 'New Post',
@@ -253,6 +267,26 @@ describe('PostRepository', () => {
       });
     });
 
+    it('should create post without user info when includeUser is false', async () => {
+      const createData = {
+        userId: 1,
+        title: 'New Post',
+        content: 'Post content',
+        published: false,
+      };
+      const mockPost = { id: 1, ...createData, createdAt: new Date() };
+
+      mockPrisma.post.create.mockResolvedValue(mockPost);
+
+      const result = await repository.create(createData, false);
+
+      expect(result).toEqual(mockPost);
+      expect(mockPrisma.post.create).toHaveBeenCalledWith({
+        data: createData,
+        include: undefined,
+      });
+    });
+
     it('should throw DatabaseQueryError on create error', async () => {
       mockPrisma.post.create.mockRejectedValue(new Error('Foreign key constraint failed'));
 
@@ -268,7 +302,7 @@ describe('PostRepository', () => {
   });
 
   describe('update', () => {
-    it('should update post successfully', async () => {
+    it('should update post with user info by default', async () => {
       const updateData = { title: 'Updated Title', published: true };
       const mockPost = { id: 1, ...updateData, content: 'Content', userId: 1 };
 
@@ -289,6 +323,22 @@ describe('PostRepository', () => {
             },
           },
         },
+      });
+    });
+
+    it('should update post without user info when includeUser is false', async () => {
+      const updateData = { title: 'Updated Title', published: true };
+      const mockPost = { id: 1, ...updateData, content: 'Content', userId: 1 };
+
+      mockPrisma.post.update.mockResolvedValue(mockPost);
+
+      const result = await repository.update(1, updateData, false);
+
+      expect(result).toEqual(mockPost);
+      expect(mockPrisma.post.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: updateData,
+        include: undefined,
       });
     });
   });

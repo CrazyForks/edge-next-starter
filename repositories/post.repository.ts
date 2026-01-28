@@ -1,6 +1,28 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { DatabaseError, DatabaseQueryError } from '@/lib/errors';
 import { analytics } from '@/lib/analytics';
+
+/**
+ * User select fields for include queries
+ * Reusable across multiple methods to ensure consistency
+ */
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+} as const;
+
+/**
+ * Post with user relation type
+ */
+export type PostWithUser = Prisma.PostGetPayload<{
+  include: { user: { select: typeof USER_SELECT } };
+}>;
+
+/**
+ * Post without user relation type
+ */
+export type PostWithoutUser = Prisma.PostGetPayload<object>;
 
 /**
  * Post Repository
@@ -11,8 +33,15 @@ export class PostRepository {
 
   /**
    * Query all posts (supports filters and pagination)
+   * @param options.includeUser - Set to true to include user data (default: false to avoid N+1)
    */
-  async findAll(options?: { userId?: number; published?: boolean; skip?: number; take?: number }) {
+  async findAll(options?: {
+    userId?: number;
+    published?: boolean;
+    skip?: number;
+    take?: number;
+    includeUser?: boolean;
+  }): Promise<PostWithUser[] | PostWithoutUser[]> {
     try {
       const where: {
         userId?: number;
@@ -28,22 +57,21 @@ export class PostRepository {
       }
 
       const start = Date.now();
+
+      // Conditionally include user data to avoid N+1 queries
+      const includeConfig = options?.includeUser ? { user: { select: USER_SELECT } } : undefined;
+
       const posts = await this.prisma.post.findMany({
         where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: includeConfig,
         orderBy: { createdAt: 'desc' },
         skip: options?.skip,
         take: options?.take,
       });
-      await analytics.trackDatabaseQuery('post.findAll', 'posts', Date.now() - start, where);
+      await analytics.trackDatabaseQuery('post.findAll', 'posts', Date.now() - start, {
+        ...where,
+        includeUser: options?.includeUser ?? false,
+      });
       return posts;
     } catch (error) {
       throw new DatabaseQueryError('Failed to fetch posts', error);
@@ -79,23 +107,23 @@ export class PostRepository {
 
   /**
    * Find post by ID
+   * @param id - Post ID
+   * @param includeUser - Set to true to include user data (default: true for single post queries)
    */
-  async findById(id: number) {
+  async findById(id: number, includeUser = true): Promise<PostWithUser | PostWithoutUser | null> {
     try {
       const start = Date.now();
+
+      const includeConfig = includeUser ? { user: { select: USER_SELECT } } : undefined;
+
       const post = await this.prisma.post.findUnique({
         where: { id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: includeConfig,
       });
-      await analytics.trackDatabaseQuery('post.findById', 'posts', Date.now() - start, { id });
+      await analytics.trackDatabaseQuery('post.findById', 'posts', Date.now() - start, {
+        id,
+        includeUser,
+      });
       return post;
     } catch (error) {
       throw new DatabaseQueryError(`Failed to fetch post with id ${id}`, error);
@@ -128,15 +156,23 @@ export class PostRepository {
 
   /**
    * Create post
+   * @param data - Post data
+   * @param includeUser - Set to true to include user data in response (default: true)
    */
-  async create(data: {
-    userId: number;
-    title: string;
-    content?: string | null;
-    published?: boolean;
-  }) {
+  async create(
+    data: {
+      userId: number;
+      title: string;
+      content?: string | null;
+      published?: boolean;
+    },
+    includeUser = true
+  ): Promise<PostWithUser | PostWithoutUser> {
     try {
       const start = Date.now();
+
+      const includeConfig = includeUser ? { user: { select: USER_SELECT } } : undefined;
+
       const post = await this.prisma.post.create({
         data: {
           userId: data.userId,
@@ -144,18 +180,11 @@ export class PostRepository {
           content: data.content || null,
           published: data.published ?? false,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: includeConfig,
       });
       await analytics.trackDatabaseQuery('post.create', 'posts', Date.now() - start, {
         userId: data.userId,
+        includeUser,
       });
       return post;
     } catch (error) {
@@ -165,6 +194,9 @@ export class PostRepository {
 
   /**
    * Update post
+   * @param id - Post ID
+   * @param data - Update data
+   * @param includeUser - Set to true to include user data in response (default: true)
    */
   async update(
     id: number,
@@ -172,24 +204,23 @@ export class PostRepository {
       title?: string;
       content?: string | null;
       published?: boolean;
-    }
-  ) {
+    },
+    includeUser = true
+  ): Promise<PostWithUser | PostWithoutUser> {
     try {
       const start = Date.now();
+
+      const includeConfig = includeUser ? { user: { select: USER_SELECT } } : undefined;
+
       const post = await this.prisma.post.update({
         where: { id },
         data,
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
+        include: includeConfig,
       });
-      await analytics.trackDatabaseQuery('post.update', 'posts', Date.now() - start, { id });
+      await analytics.trackDatabaseQuery('post.update', 'posts', Date.now() - start, {
+        id,
+        includeUser,
+      });
       return post;
     } catch (error) {
       throw new DatabaseError(`Failed to update post with id ${id}`, error);

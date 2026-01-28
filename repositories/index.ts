@@ -103,6 +103,7 @@ export function createRepositories(prisma: PrismaClient): RepositoryFactory {
 // Export all repositories
 export { UserRepository } from './user.repository';
 export { PostRepository } from './post.repository';
+export type { PostWithUser, PostWithoutUser } from './post.repository';
 export { CustomerRepository } from './customer.repository';
 export { PaymentRepository } from './payment.repository';
 export { SubscriptionRepository } from './subscription.repository';

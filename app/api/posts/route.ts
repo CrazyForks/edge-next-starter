@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
     const pagination: PaginationParams = { page, limit };
     const userId = userIdParam ? parseInt(userIdParam, 10) : undefined;
     const published = publishedParam !== null ? publishedParam === 'true' : undefined;
+    // Allow client to specify whether to include user data (default: true for backward compatibility)
+    const includeUser = searchParams.get('includeUser') !== 'false';
 
     const timerStart = Date.now();
     // DB operations: query posts and total count
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
         published,
         skip: (pagination.page - 1) * pagination.limit,
         take: pagination.limit,
+        includeUser,
       }),
       repos.posts.count({ userId, published }),
     ]);

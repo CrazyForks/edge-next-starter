@@ -62,6 +62,7 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expires], map: "idx_sessions_expires")
   @@map("sessions")
 }
 
@@ -72,6 +73,7 @@ model VerificationToken {
   expires    Int      // Expiration timestamp
 
   @@unique([identifier, token])
+  @@index([expires], map: "idx_verification_tokens_expires")
   @@map("verification_tokens")
 }
 
@@ -88,6 +90,8 @@ model Post {
   @@index([userId])
   @@index([published])
   @@index([createdAt])
+  @@index([userId, published], map: "idx_posts_user_published")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_posts_user_created")
   @@map("posts")
 }
 
@@ -133,6 +137,8 @@ model Payment {
   @@index([stripeCheckoutSessionId])
   @@index([status])
   @@index([createdAt])
+  @@index([customerId, status], map: "idx_payments_customer_status")
+  @@index([customerId, createdAt(sort: Desc)], map: "idx_payments_customer_created")
   @@map("payments")
 }
 
@@ -162,6 +168,7 @@ model Subscription {
   @@index([stripePriceId])
   @@index([status])
   @@index([currentPeriodEnd])
+  @@index([customerId, status], map: "idx_subscriptions_customer_status")
   @@map("subscriptions")
 }
 
@@ -190,6 +197,7 @@ model Invoice {
   @@index([stripeInvoiceId])
   @@index([status])
   @@index([createdAt])
+  @@index([customerId, status], map: "idx_invoices_customer_status")
   @@map("invoices")
 }
 
