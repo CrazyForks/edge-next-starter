@@ -37,7 +37,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "keywords": [
     "next.js",
@@ -62,14 +64,17 @@
     "@prisma/client": "^6.17.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-toast": "^1.2.15",
     "axios": "^1.13.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.548.0",
     "next": "15.5.2",
     "next-auth": "5.0.0-beta.30",
+    "next-intl": "^4.8.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "resend": "^6.9.2",
     "stripe": "^20.0.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.12"
@@ -77,6 +82,7 @@
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
     "@cloudflare/workers-types": "^4.20251011.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^20.17.13",
@@ -87,6 +93,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9.37.0",
     "eslint-config-next": "15.5.2",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "happy-dom": "^20.0.2",
     "husky": "^9.1.6",
     "jsdom": "^27.0.0",
