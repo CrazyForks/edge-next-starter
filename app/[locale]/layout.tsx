@@ -9,13 +9,35 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  const { locale } = await params;
+  let locale: string;
+
+  try {
+    const resolvedParams = await params;
+    console.log('[LocaleLayout] params:', JSON.stringify(resolvedParams));
+    locale = resolvedParams.locale;
+  } catch (e) {
+    console.error('[LocaleLayout] Failed to resolve params:', e);
+    throw e;
+  }
 
   if (!hasLocale(routing.locales, locale)) {
+    console.error('[LocaleLayout] Invalid locale, calling notFound:', locale);
     notFound();
   }
 
-  const messages = (await import(`../../messages/${locale}.json`)).default;
+  let messages;
+  try {
+    messages = (await import(`../../messages/${locale}.json`)).default;
+    console.log(
+      '[LocaleLayout] Messages loaded for',
+      locale,
+      '- keys:',
+      Object.keys(messages).length
+    );
+  } catch (e) {
+    console.error('[LocaleLayout] Failed to load messages for', locale, ':', e);
+    throw e;
+  }
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

@@ -7,7 +7,13 @@ import { handleSignOut } from '@/app/actions/auth';
 export const runtime = 'edge';
 
 export default async function Home() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  let session = null;
+  try {
+    session = await auth.api.getSession({ headers: await headers() });
+    console.log('[Home] Session resolved:', !!session);
+  } catch (e) {
+    console.error('[Home] Failed to get session:', e);
+  }
 
   return (
     <div className="min-h-screen flex flex-col p-8">
