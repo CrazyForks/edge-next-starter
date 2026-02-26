@@ -52,7 +52,16 @@ worker-configuration.d.ts
 *~
 .tmp-migration.sql
 
+# AI agents / tools
+.agent/
+.agents/
+.trae/
 .claude
 CLAUDE.md
 AGENTS.md
 .spec-workflow
+skills-lock.json
+
+# Prisma local dev database
+prisma/dev.db
+prisma/dev.db-journal
