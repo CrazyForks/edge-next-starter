@@ -17,7 +17,7 @@ env:
 
 jobs:
   deploy-production:
-    name: Deploy to Cloudflare Pages (Production)
+    name: Deploy to Cloudflare Workers (Production)
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     environment:
@@ -33,42 +33,11 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Download build-artifacts from CI
-        if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
-          path: .vercel/output/static
-
-      - name: Build for manual deployment
-        if: github.event_name == 'workflow_dispatch'
+      - name: Build for production
         env:
           NODE_ENV: production
           CI: true
-        run: |
-          pnpm run build
-          pnpm run pages:build
-
-      - name: Show downloaded artifact files (debug)
-        if: runner.debug == '1'
-        shell: bash
-        run: |
-          echo "Workspace root:" && pwd
-          echo "List root:" && ls -la . || true
-          echo "List .vercel/output:" && ls -la .vercel/output || true
-          echo "List .vercel/output/static:" && ls -la .vercel/output/static || true
-
-      - name: Validate build artifacts exist
-        shell: bash
-        run: |
-          if [ ! -d ".vercel/output/static" ] || [ -z "$(ls -A .vercel/output/static 2>/dev/null)" ]; then
-            echo "❌ Build artifacts not found at .vercel/output/static."
-            echo "Please ensure the CI workflow uploads 'build-artifacts' via actions/upload-artifact."
-            echo "CI must complete successfully before deploy triggers."
-            exit 1
-          fi
+        run: pnpm run build
 
       - name: Run database migrations (wrangler.prod.toml)
         uses: cloudflare/wrangler-action@v3
@@ -77,22 +46,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 migrations apply cloudflare-worker-template-prod --remote --config wrangler.prod.toml
 
-      - name: Copy production config for Pages deployment
-        run: cp wrangler.prod.toml wrangler.toml
-
-      - name: Deploy to Cloudflare Pages (Production)
+      - name: Deploy to Cloudflare Workers (Production)
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .vercel/output/static --project-name=cloudflare-worker-template-prod --branch=main
+          command: deploy --config wrangler.prod.toml
 
       - name: Health Check
         id: health-check
         shell: bash
         run: |
-          # Use configured URL, or fallback to Cloudflare Pages default URL
+          # Use configured URL, or fallback to Cloudflare default URL
           DEPLOYMENT_URL="${{ vars.PRODUCTION_DEPLOYMENT_URL }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
             DEPLOYMENT_URL="https://cloudflare-worker-template-prod.pages.dev"
@@ -129,16 +95,9 @@ jobs:
           echo "### ⚠️ Critical: Production Health Check Failed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Immediate Actions Required:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Check Cloudflare Pages dashboard for deployment status" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check Cloudflare Workers dashboard for deployment status" >> $GITHUB_STEP_SUMMARY
           echo "2. Review application logs for errors" >> $GITHUB_STEP_SUMMARY
           echo "3. Consider rolling back to previous deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Rollback Instructions:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Go to Cloudflare Pages Dashboard" >> $GITHUB_STEP_SUMMARY
-          echo "- Select the project: cloudflare-worker-template-prod" >> $GITHUB_STEP_SUMMARY
-          echo "- Go to Deployments tab" >> $GITHUB_STEP_SUMMARY
-          echo "- Find the previous successful deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- Click 'Rollback to this deployment'" >> $GITHUB_STEP_SUMMARY
 
       - name: Create deployment summary
         if: success()

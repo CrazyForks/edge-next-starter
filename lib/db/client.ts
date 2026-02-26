@@ -91,7 +91,7 @@ export function createPrismaClient(): PrismaClient {
   } else {
     // D1 binding not available - check runtime environment
     if (process.env.NODE_ENV === 'production') {
-      // In production on Cloudflare Pages, D1 should always be available via getRequestContext()
+      // In production on Cloudflare Workers, D1 should always be available via cloudflare:workers env
       // If we reach here, it means we're not in a request context or D1 is misconfigured
       throw new Error(
         'Database not available: D1 binding not found. ' +

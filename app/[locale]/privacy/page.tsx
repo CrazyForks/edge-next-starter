@@ -136,7 +136,8 @@ export default function PrivacyPolicyPage() {
             <h3 className="font-semibold mt-4 mb-2">4.2 Security Measures</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li>
-                <strong>Encryption:</strong> Passwords are encrypted using bcrypt hashing algorithm.
+                <strong>Encryption:</strong> Passwords are encrypted using PBKDF2 hashing algorithm
+                via Web Crypto API.
               </li>
               <li>
                 <strong>HTTPS:</strong> All data transmission is encrypted using SSL/TLS.

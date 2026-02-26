@@ -17,7 +17,7 @@ env:
 
 jobs:
   deploy-test:
-    name: Deploy to Cloudflare Pages (Test)
+    name: Deploy to Cloudflare Workers (Test)
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     environment:
@@ -33,32 +33,11 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Download build-artifacts from CI
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
-          path: .vercel/output/static
-
-      - name: Show downloaded artifact files (debug)
-        if: runner.debug == '1'
-        shell: bash
-        run: |
-          echo "Workspace root:" && pwd
-          echo "List root:" && ls -la . || true
-          echo "List .vercel/output:" && ls -la .vercel/output || true
-          echo "List .vercel/output/static:" && ls -la .vercel/output/static || true
-
-      - name: Validate build artifacts exist
-        shell: bash
-        run: |
-          if [ ! -d ".vercel/output/static" ] || [ -z "$(ls -A .vercel/output/static 2>/dev/null)" ]; then
-            echo "❌ Build artifacts not found at .vercel/output/static."
-            echo "Please ensure the CI workflow uploads 'build-artifacts' via actions/upload-artifact."
-            echo "CI must complete successfully before deploy triggers."
-            exit 1
-          fi
+      - name: Build for test
+        env:
+          NODE_ENV: production
+          CI: true
+        run: pnpm run build
 
       - name: Run database migrations (wrangler.test.toml)
         uses: cloudflare/wrangler-action@v3
@@ -67,22 +46,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: d1 migrations apply cloudflare-worker-template-test --remote --config wrangler.test.toml
 
-      - name: Copy test config for Pages deployment
-        run: cp wrangler.test.toml wrangler.toml
-
-      - name: Deploy to Cloudflare Pages (Test)
+      - name: Deploy to Cloudflare Workers (Test)
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .vercel/output/static --project-name=cloudflare-worker-template-test
+          command: deploy --config wrangler.test.toml
 
       - name: Health Check
         id: health-check
         shell: bash
         run: |
-          # Use configured URL, or fallback to Cloudflare Pages default URL
+          # Use configured URL, or fallback to Cloudflare default URL
           DEPLOYMENT_URL="${{ vars.TEST_DEPLOYMENT_URL }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
             DEPLOYMENT_URL="https://cloudflare-worker-template-test.pages.dev"
@@ -115,12 +91,12 @@ jobs:
         shell: bash
         run: |
           echo "🔄 Health check failed - initiating rollback notification"
-          echo "⚠️ Manual rollback may be required. Please check Cloudflare Pages dashboard."
+          echo "⚠️ Manual rollback may be required. Please check Cloudflare Workers dashboard."
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ⚠️ Deployment Failed - Health Check" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The deployment completed but the health check failed." >> $GITHUB_STEP_SUMMARY
-          echo "Please investigate and consider rolling back in Cloudflare Pages dashboard." >> $GITHUB_STEP_SUMMARY
+          echo "Please investigate and consider rolling back in Cloudflare Workers dashboard." >> $GITHUB_STEP_SUMMARY
 
       - name: Get associated PR number
         id: pr

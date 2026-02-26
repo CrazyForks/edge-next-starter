@@ -92,9 +92,8 @@ git push origin main
 ### 手动部署
 
 ```bash
-pnpm run pages:deploy        # 开发环境
-pnpm run pages:deploy:test   # 测试环境
-pnpm run pages:deploy:prod   # 生产环境
+pnpm deploy              # 部署到 Cloudflare Workers
+pnpm deploy:preview      # 部署预览版本
 ```
 
 ## 🔄 持续集成/部署
@@ -223,7 +222,7 @@ R2 服务需要在 Cloudflare Dashboard 中手动启用：
 
 ### 部署后 404
 
-确认 `pages_build_output_dir` 设置为 `.vercel/output/static`
+确认 Worker 路由和绑定配置在 `wrangler.toml` 中正确设置
 
 ## ⚡ 性能优化
 

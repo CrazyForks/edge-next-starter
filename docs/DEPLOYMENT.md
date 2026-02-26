@@ -92,9 +92,8 @@ git push origin main
 ### Manual
 
 ```bash
-pnpm run pages:deploy
-pnpm run pages:deploy:test
-pnpm run pages:deploy:prod
+pnpm deploy              # Deploy to Cloudflare Workers
+pnpm deploy:preview      # Deploy preview build
 ```
 
 ## 🔄 CI/CD
@@ -223,7 +222,7 @@ Confirm bucket name, created status, and binding config are correct
 
 ### 404 after deployment
 
-Confirm `pages_build_output_dir` is `.vercel/output/static`
+Confirm Worker routes and bindings are correctly configured in `wrangler.toml`
 
 ## ⚡ Performance
 
