@@ -76,12 +76,16 @@ export default async function Home() {
         </div>
 
         <div className="text-center mt-8 space-x-3">
-          <Link
+          {/* Use plain <a> for API endpoints — they return JSON, not RSC pages.
+              Next.js <Link> triggers client-side RSC navigation which breaks
+              on non-page routes and corrupts the React root. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
             href="/api/health"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Check API Health
-          </Link>
+          </a>
           <Link
             href="/upload"
             className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
