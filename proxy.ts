@@ -52,74 +52,93 @@ function stripLocale(pathname: string): string {
 }
 
 export async function proxy(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
+  try {
+    const pathname = req.nextUrl.pathname;
 
-  // Skip i18n for API routes - handle directly
-  if (pathname.startsWith('/api/')) {
-    // Handle CORS preflight
+    // Skip i18n for API routes - handle directly
+    if (pathname.startsWith('/api/')) {
+      // Handle CORS preflight
+      if (isPreflightRequest(req)) {
+        return handlePreflight(req);
+      }
+      // Validate CSRF for unsafe methods
+      if (!validateCsrfToken(req)) {
+        return csrfErrorResponse();
+      }
+      const response = NextResponse.next();
+      return ensureCsrfToken(req, applyCorsHeaders(req, response));
+    }
+
+    // Handle CORS preflight for non-API routes
     if (isPreflightRequest(req)) {
       return handlePreflight(req);
     }
-    // Validate CSRF for unsafe methods
+
+    // Validate CSRF token for unsafe methods on page routes
     if (!validateCsrfToken(req)) {
       return csrfErrorResponse();
     }
-    const response = NextResponse.next();
-    return ensureCsrfToken(req, applyCorsHeaders(req, response));
+
+    // Apply i18n routing first
+    const i18nResponse = handleI18nRouting(req as unknown as NextRequest);
+
+    // Get the actual path without locale prefix for auth checks
+    const actualPath = stripLocale(pathname);
+
+    // Check authentication via better-auth session
+    let isAuthenticated = false;
+    try {
+      const session = await auth.api.getSession({ headers: req.headers });
+      isAuthenticated = !!session;
+    } catch {
+      // Session check failed — treat as unauthenticated and continue
+      // This prevents auth errors from blocking public page access
+    }
+
+    const isPublicPath = publicPaths.some(
+      path => actualPath === path || actualPath.startsWith(path + '/')
+    );
+    const isAuthPage = authPages.some(
+      path => actualPath === path || actualPath.startsWith(path + '/')
+    );
+
+    // Also allow API-like public paths at root level
+    const isApiPublicPath = [
+      '/api/auth',
+      '/api/health',
+      '/api/register',
+      '/api/stripe/webhook',
+      '/api/monitoring',
+    ].some(path => pathname.startsWith(path));
+
+    // If user is authenticated and trying to access auth pages, redirect to home
+    if (isAuthenticated && isAuthPage) {
+      const response = NextResponse.redirect(new URL('/', req.url));
+      return ensureCsrfToken(req, applyCorsHeaders(req, response));
+    }
+
+    // If not authenticated and not public, redirect to login
+    if (!isAuthenticated && !isPublicPath && !isApiPublicPath) {
+      const loginUrl = new URL('/login', req.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      const response = NextResponse.redirect(loginUrl);
+      return ensureCsrfToken(req, applyCorsHeaders(req, response));
+    }
+
+    // Apply CORS and CSRF token to i18n response
+    return ensureCsrfToken(req, applyCorsHeaders(req, i18nResponse));
+  } catch (error) {
+    // Log the error for Workers log inspection and return a diagnostic response
+    console.error('[proxy] Unhandled error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Proxy error',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-
-  // Handle CORS preflight for non-API routes
-  if (isPreflightRequest(req)) {
-    return handlePreflight(req);
-  }
-
-  // Validate CSRF token for unsafe methods on page routes
-  if (!validateCsrfToken(req)) {
-    return csrfErrorResponse();
-  }
-
-  // Apply i18n routing first
-  const i18nResponse = handleI18nRouting(req as unknown as NextRequest);
-
-  // Get the actual path without locale prefix for auth checks
-  const actualPath = stripLocale(pathname);
-
-  // Check authentication via better-auth session
-  const session = await auth.api.getSession({ headers: req.headers });
-  const isAuthenticated = !!session;
-
-  const isPublicPath = publicPaths.some(
-    path => actualPath === path || actualPath.startsWith(path + '/')
-  );
-  const isAuthPage = authPages.some(
-    path => actualPath === path || actualPath.startsWith(path + '/')
-  );
-
-  // Also allow API-like public paths at root level
-  const isApiPublicPath = [
-    '/api/auth',
-    '/api/health',
-    '/api/register',
-    '/api/stripe/webhook',
-    '/api/monitoring',
-  ].some(path => pathname.startsWith(path));
-
-  // If user is authenticated and trying to access auth pages, redirect to home
-  if (isAuthenticated && isAuthPage) {
-    const response = NextResponse.redirect(new URL('/', req.url));
-    return ensureCsrfToken(req, applyCorsHeaders(req, response));
-  }
-
-  // If not authenticated and not public, redirect to login
-  if (!isAuthenticated && !isPublicPath && !isApiPublicPath) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    const response = NextResponse.redirect(loginUrl);
-    return ensureCsrfToken(req, applyCorsHeaders(req, response));
-  }
-
-  // Apply CORS and CSRF token to i18n response
-  return ensureCsrfToken(req, applyCorsHeaders(req, i18nResponse));
 }
 
 // Configure routes where proxy should run
