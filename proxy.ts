@@ -7,14 +7,50 @@
  */
 
 import { auth } from '@/lib/auth';
-import createIntlMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
 import { isPreflightRequest, handlePreflight, applyCorsHeaders } from '@/lib/security/cors';
 import { validateCsrfToken, ensureCsrfToken, csrfErrorResponse } from '@/lib/security/csrf';
 
-// Create next-intl middleware handler
-const handleI18nRouting = createIntlMiddleware(routing);
+/**
+ * Simple i18n routing handler (replaces next-intl createIntlMiddleware)
+ *
+ * next-intl's createIntlMiddleware mutates NextURL.port which throws in
+ * vinext's Workers runtime (getter-only property). This lightweight handler
+ * provides equivalent functionality:
+ * - Detects locale from URL path
+ * - Redirects bare paths to default locale (e.g., / → /en)
+ * - Passes through paths that already have a locale prefix
+ */
+function handleI18nRouting(req: NextRequest): NextResponse {
+  const { locales, defaultLocale } = routing;
+  const pathname = req.nextUrl.pathname;
+
+  // Check if pathname already has a locale prefix
+  const hasLocale = locales.some(
+    locale => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+  );
+
+  if (hasLocale) {
+    // Path already has locale, continue processing
+    return NextResponse.next();
+  }
+
+  // Detect preferred locale from Accept-Language header
+  const acceptLanguage = req.headers.get('accept-language') || '';
+  let detectedLocale = defaultLocale;
+  for (const locale of locales) {
+    if (acceptLanguage.toLowerCase().includes(locale)) {
+      detectedLocale = locale;
+      break;
+    }
+  }
+
+  // Redirect to localized path using plain URL to avoid NextURL setter issues
+  const url = new URL(req.url);
+  url.pathname = `/${detectedLocale}${pathname}`;
+  return NextResponse.redirect(url);
+}
 
 /**
  * Public paths that don't require authentication
