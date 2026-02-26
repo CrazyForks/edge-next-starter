@@ -123,15 +123,11 @@ export async function proxy(req: NextRequest) {
 }
 
 // Configure routes where proxy should run
+// NOTE: vinext's matchMiddlewarePath uses .replace(/\./g, "\\.") which corrupts
+// Next.js regex matchers. Use `:param` syntax instead, which vinext transforms
+// correctly via .replace(/:(\w+)\*/g, "(?:.*)") → "^/(?:.*)$".
+// In Cloudflare Workers, static assets are served by the CDN before hitting
+// the worker, so the _next/static exclusion pattern is not needed.
 export const config = {
-  matcher: [
-    /*
-     * Match all paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - files in the public folder (images, icons, etc.)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
-  ],
+  matcher: ['/:path*'],
 };
