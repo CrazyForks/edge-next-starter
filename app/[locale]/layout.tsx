@@ -1,5 +1,4 @@
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
-import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 
 export default async function LocaleLayout({
@@ -9,19 +8,17 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  console.log('[LocaleLayout] start');
-  // vinext may re-render the layout with undefined params during error recovery
+  // vinext may re-render the layout with undefined params during error recovery.
+  // notFound() is NOT supported in vinext (throws unhandled RSC error), so we
+  // fall back to the default locale instead of calling notFound().
   const resolvedParams = await params;
-  const locale = resolvedParams?.locale;
-  console.log('[LocaleLayout] locale:', locale);
+  let locale = resolvedParams?.locale;
 
   if (!locale || !hasLocale(routing.locales, locale)) {
-    console.log('[LocaleLayout] invalid locale, calling notFound()');
-    notFound();
+    locale = routing.defaultLocale;
   }
 
   const messages = (await import(`../../messages/${locale}.json`)).default;
-  console.log('[LocaleLayout] messages loaded, rendering JSX');
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
