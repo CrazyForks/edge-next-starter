@@ -6,7 +6,9 @@ import { handleSignOut } from '@/app/actions/auth';
 export const runtime = 'edge';
 
 export default async function Home() {
+  console.log('[Home] start');
   const session = await getSessionSafe();
+  console.log('[Home] session resolved, rendering JSX');
 
   return (
     <div className="min-h-screen flex flex-col p-8">

@@ -24,9 +24,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: '{{AUTHOR_NAME}}' }],
   creator: '{{AUTHOR_NAME}}',
-  metadataBase: new URL(
-    process.env.SITE_URL || process.env.NEXTAUTH_URL || 'https://{{YOUR_DOMAIN}}'
-  ),
+  metadataBase: new URL(process.env.SITE_URL || process.env.NEXTAUTH_URL || 'https://localhost'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -73,6 +71,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log('[RootLayout] rendering');
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">

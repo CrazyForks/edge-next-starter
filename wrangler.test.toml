@@ -40,6 +40,7 @@ invocation_logs = true
 [vars]
 ENVIRONMENT = "test"
 ANALYTICS_SINK = "kv"
+SITE_URL = "https://cloudflare-worker-template-test.t-ac5.workers.dev"
 # Configure NEXTAUTH_SECRET via `wrangler secret put NEXTAUTH_SECRET` to keep secrets out of source control
 # Configure STRIPE_SECRET_KEY via `wrangler secret put STRIPE_SECRET_KEY`
 # Configure STRIPE_WEBHOOK_SECRET via `wrangler secret put STRIPE_WEBHOOK_SECRET`
