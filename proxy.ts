@@ -104,6 +104,37 @@ export async function proxy(req: NextRequest) {
       return NextResponse.next();
     }
 
+    // RSC payload requests (.rsc suffix) — vinext uses these for client-side navigation.
+    // Apply i18n routing (locale prefix) but skip auth redirects entirely.
+    // Auth is enforced at the server component level (getSessionSafe), not here.
+    // Redirecting .rsc requests to /login breaks the RSC stream and causes blank pages.
+    if (pathname.endsWith('.rsc')) {
+      // Strip .rsc suffix to check i18n routing on the clean path
+      const cleanPath = pathname.slice(0, -4);
+      const { locales, defaultLocale } = routing;
+      const hasLocale = locales.some(
+        locale => cleanPath.startsWith(`/${locale}/`) || cleanPath === `/${locale}`
+      );
+
+      if (hasLocale) {
+        // Path already has locale (e.g., /en.rsc → /en) — pass through
+        return NextResponse.next();
+      }
+
+      // Add locale prefix and redirect (e.g., /login.rsc → /zh/login.rsc)
+      const acceptLanguage = req.headers.get('accept-language') || '';
+      let detectedLocale = defaultLocale;
+      for (const locale of locales) {
+        if (acceptLanguage.toLowerCase().includes(locale)) {
+          detectedLocale = locale;
+          break;
+        }
+      }
+      const url = new URL(req.url);
+      url.pathname = `/${detectedLocale}${pathname}`;
+      return NextResponse.redirect(url);
+    }
+
     // Skip i18n for API routes - handle directly
     if (pathname.startsWith('/api/')) {
       // Handle CORS preflight
