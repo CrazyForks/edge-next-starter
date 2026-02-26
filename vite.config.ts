@@ -15,7 +15,8 @@ export default defineConfig({
       // Prisma generates `.prisma/client/default` which Vite can't resolve
       // (starts with `.` so treated as relative path). Alias to the workerd-
       // appropriate wasm.js entry so Vite bundles the Prisma client properly.
-      '.prisma/client/default': resolve(import.meta.dirname, 'node_modules/.prisma/client/wasm.js'),
+      // Use process.cwd() since Vite always runs from the project root.
+      '.prisma/client/default': resolve(process.cwd(), 'node_modules/.prisma/client/wasm.js'),
     },
   },
 });
