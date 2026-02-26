@@ -9,35 +9,15 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  let locale: string;
+  // vinext may re-render the layout with undefined params during error recovery
+  const resolvedParams = await params;
+  const locale = resolvedParams?.locale;
 
-  try {
-    const resolvedParams = await params;
-    console.log('[LocaleLayout] params:', JSON.stringify(resolvedParams));
-    locale = resolvedParams.locale;
-  } catch (e) {
-    console.error('[LocaleLayout] Failed to resolve params:', e);
-    throw e;
-  }
-
-  if (!hasLocale(routing.locales, locale)) {
-    console.error('[LocaleLayout] Invalid locale, calling notFound:', locale);
+  if (!locale || !hasLocale(routing.locales, locale)) {
     notFound();
   }
 
-  let messages;
-  try {
-    messages = (await import(`../../messages/${locale}.json`)).default;
-    console.log(
-      '[LocaleLayout] Messages loaded for',
-      locale,
-      '- keys:',
-      Object.keys(messages).length
-    );
-  } catch (e) {
-    console.error('[LocaleLayout] Failed to load messages for', locale, ':', e);
-    throw e;
-  }
+  const messages = (await import(`../../messages/${locale}.json`)).default;
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

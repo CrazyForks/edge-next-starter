@@ -11,11 +11,26 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
+import { env as cloudflareEnv } from 'cloudflare:workers';
 import { prisma } from '@/lib/db/client';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 
+/**
+ * Resolve auth secret from Cloudflare env bindings or process.env fallback.
+ * Secrets set via `wrangler secret put` are only accessible through the
+ * `cloudflare:workers` env binding, NOT via `process.env`.
+ */
+function getAuthSecret(): string | undefined {
+  // Cloudflare Workers: secrets are in env bindings
+  const cfEnv = cloudflareEnv as Record<string, unknown>;
+  if (cfEnv?.BETTER_AUTH_SECRET) return String(cfEnv.BETTER_AUTH_SECRET);
+  if (cfEnv?.NEXTAUTH_SECRET) return String(cfEnv.NEXTAUTH_SECRET);
+  // Fallback: process.env (local dev / Node.js)
+  return process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+}
+
 export const auth = betterAuth({
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getAuthSecret(),
 
   database: prismaAdapter(prisma, {
     provider: 'sqlite',
