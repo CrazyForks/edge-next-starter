@@ -3,8 +3,7 @@
  * Displayed after successful payment
  */
 
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ interface SuccessPageProps {
 }
 
 export default async function CheckoutSuccessPage({ searchParams }: SuccessPageProps) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe();
   const params = await searchParams;
 
   if (!session?.user) {

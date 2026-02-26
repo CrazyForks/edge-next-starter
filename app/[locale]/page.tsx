@@ -1,5 +1,4 @@
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/lib/auth/session';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { handleSignOut } from '@/app/actions/auth';
@@ -7,13 +6,7 @@ import { handleSignOut } from '@/app/actions/auth';
 export const runtime = 'edge';
 
 export default async function Home() {
-  let session = null;
-  try {
-    session = await auth.api.getSession({ headers: await headers() });
-    console.log('[Home] Session resolved:', !!session);
-  } catch (e) {
-    console.error('[Home] Failed to get session:', e);
-  }
+  const session = await getSessionSafe();
 
   return (
     <div className="min-h-screen flex flex-col p-8">

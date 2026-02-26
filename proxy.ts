@@ -87,9 +87,22 @@ function stripLocale(pathname: string): string {
   return pathname;
 }
 
+/**
+ * Static file extensions that should bypass proxy logic entirely.
+ * In production, Cloudflare CDN serves static assets from dist/client,
+ * but missing files (e.g., favicon.ico) fall through to the worker.
+ */
+const STATIC_EXTENSIONS =
+  /\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|map|woff2?|ttf|eot|webmanifest|txt|xml|json)$/i;
+
 export async function proxy(req: NextRequest) {
   try {
     const pathname = req.nextUrl.pathname;
+
+    // Pass through static file requests — avoids unnecessary auth checks and i18n redirects
+    if (STATIC_EXTENSIONS.test(pathname)) {
+      return NextResponse.next();
+    }
 
     // Skip i18n for API routes - handle directly
     if (pathname.startsWith('/api/')) {
@@ -164,16 +177,12 @@ export async function proxy(req: NextRequest) {
     // Apply CORS and CSRF token to i18n response
     return ensureCsrfToken(req, applyCorsHeaders(req, i18nResponse));
   } catch (error) {
-    // Log the error for Workers log inspection and return a diagnostic response
+    // Log full error for Workers observability logs, return safe 500 to client
     console.error('[proxy] Unhandled error:', error);
-    return new Response(
-      JSON.stringify({
-        error: 'Proxy error',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response('Internal Server Error', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain' },
+    });
   }
 }
 

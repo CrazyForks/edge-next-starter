@@ -3,8 +3,7 @@
  * Only accessible to logged-in users
  */
 
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@/components/ui';
 import { PageHeader } from '@/components/layout';
@@ -12,7 +11,7 @@ import Link from 'next/link';
 import { handleSignOut } from '@/app/actions/auth';
 
 export default async function DashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe();
 
   if (!session?.user) {
     redirect('/login');

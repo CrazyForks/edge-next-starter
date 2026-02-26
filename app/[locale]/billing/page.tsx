@@ -3,8 +3,7 @@
  * Manage subscription and view payment history
  */
 
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSessionSafe } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { PortalButton } from './portal-button';
 import { SubscriptionCard } from './subscription-card';
 
 export default async function BillingPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe();
 
   if (!session?.user) {
     redirect('/login');
