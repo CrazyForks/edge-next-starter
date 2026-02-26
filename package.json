@@ -11,7 +11,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "lint": "vinext lint",
+    "lint": "eslint .",
     "deploy": "vinext deploy",
     "deploy:preview": "vinext deploy --preview",
     "dev:next": "next dev",
@@ -54,7 +54,7 @@
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "pnpm": ">=8.0.0"
   },
   "packageManager": "pnpm@8.15.0",
