@@ -1,17 +1,21 @@
-# Cloudflare account ID
 name = "cloudflare-worker-template-prod"
-compatibility_date = "2024-11-11"
-compatibility_flags = ["nodejs_compat", "nodejs_als"]
-pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2026-02-12"
+compatibility_flags = ["nodejs_compat"]
+main = "dist/server/index.js"
 
-# D1 database binding 
+# Static assets (vinext build output)
+[assets]
+not_found_handling = "none"
+directory = "dist/client"
+
+# D1 database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "cloudflare-worker-template-prod"
 database_id = "6e91e757-b85e-4d43-a2c4-6c503e0cc9c2"
 migrations_dir = "migrations"
 
-# R2 bucket binding 
+# R2 bucket binding
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "cloudflare-worker-template-prod"
@@ -32,4 +36,4 @@ ANALYTICS_SINK = "engine"
 # Analytics Engine dataset binding
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
-dataset = "prod_analytics_dataset"  # Use underscore instead of hyphen
+dataset = "prod_analytics_dataset"

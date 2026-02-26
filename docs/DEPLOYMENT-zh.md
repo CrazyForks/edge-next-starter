@@ -1,6 +1,6 @@
 # 部署指南
 
-本指南介绍如何将应用部署到 Cloudflare Pages 的测试和生产环境。
+本指南介绍如何将应用部署到 Cloudflare Workers 的测试和生产环境。
 
 ## 📋 前置准备
 
@@ -17,41 +17,18 @@ Actions 所需的 Secrets、环境变量命名与绑定说明统一维护在 [�
 
 ## ☁️ 创建 Cloudflare 资源
 
-### 🚨 重要：首次部署前必须创建 Pages 项目
+### 🚨 重要：首次部署前确保资源已创建
 
-在使用 CI/CD 自动部署或手动部署前，**必须先在 Cloudflare 上创建 Pages 项目**，否则部署会失败并报错 `Project not found`。
+在使用 CI/CD 自动部署或手动部署前，**必须先创建 Cloudflare 资源（D1、R2、KV）**，否则部署会失败。
 
-#### 方法一：通过 Cloudflare Dashboard 创建（推荐）
+Worker 项目会在首次 `wrangler deploy` 时自动创建，无需手动创建。
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 选择您的账户
-3. 左侧菜单选择 **Workers & Pages**
-4. 点击 **Create application** → 选择 **Pages** 标签
-5. 点击 **Create using direct upload**（或连接 Git 仓库）
-6. 输入项目名称：
-   - 测试环境：`cloudflare-worker-template-test`
-   - 生产环境：`cloudflare-worker-template-prod`
-7. 点击 **Create project**
-8. **不需要**立即上传文件，项目创建后可以直接跳过
-
-#### 方法二：通过 Wrangler CLI 创建
+#### 验证 Worker 部署状态
 
 ```bash
-# 测试环境
-pnpm run build
-npx wrangler pages project create cloudflare-worker-template-test --production-branch=develop
-
-# 生产环境
-npx wrangler pages project create cloudflare-worker-template-prod --production-branch=main
-```
-
-#### 验证项目创建成功
-
-```bash
-# 列出所有 Pages 项目
-npx wrangler pages project list
-
-# 应该能看到创建的项目名称
+# 列出所有 Workers
+npx wrangler deployments list --config wrangler.test.toml
+npx wrangler deployments list --config wrangler.prod.toml
 ```
 
 ### 其他 Cloudflare 资源
@@ -109,53 +86,50 @@ pnpm deploy:preview      # 部署预览版本
 
 ## 🌐 自定义域名
 
-1. Cloudflare Dashboard → Pages → 项目 → Custom domains
-2. Add domain 并按提示配置 DNS
+1. Cloudflare Dashboard → Workers & Pages → 选择 Worker → Settings → Domains & Routes
+2. 添加自定义域名并按提示配置 DNS
 3. SSL/TLS 证书自动提供
 
 ## 📊 环境变量
 
-在 Cloudflare Dashboard → Pages → 项目 → Settings → Environment variables 中为不同环境（Production/Preview）添加变量。
+通过 `wrangler secret put <KEY> --config wrangler.test.toml` 设置密钥变量，或在 `wrangler.*.toml` 的 `[vars]` 中设置非敏感变量。
 
 ## 🔍 监控和日志
 
 ```bash
 # 列出部署记录
-wrangler pages deployment list
+wrangler deployments list --config wrangler.test.toml
 
 # 实时日志
-wrangler pages deployment tail
-
-# Worker 日志
-wrangler tail
+wrangler tail --config wrangler.test.toml
 ```
 
-查看 Analytics：Cloudflare Dashboard → Pages → 项目 → Analytics
+查看 Analytics：Cloudflare Dashboard → Workers & Pages → 选择 Worker → Analytics
 
 ## 🔙 回滚部署
 
-**Dashboard 方式**：Pages → 项目 → Deployments → 选择之前的部署 → Rollback
+**Dashboard 方式**：Workers & Pages → 选择 Worker → Deployments → 选择之前的版本 → Rollback
 
 **命令行方式**：
 
 ```bash
-wrangler pages deployment list
-wrangler pages deployment rollback <DEPLOYMENT_ID>
+wrangler deployments list --config wrangler.test.toml
+wrangler rollback --config wrangler.test.toml
 ```
 
 ## 🐛 故障排查
 
-### Pages 项目不存在错误
+### Worker 部署失败
 
-**错误信息**：`Project not found. The specified project name does not match any of your existing projects. [code: 8000007]`
+**错误信息**：`Worker not found` 或类似错误
 
-**原因**：未在 Cloudflare 上创建对应的 Pages 项目
+**原因**：Cloudflare 资源（D1、R2、KV）未创建或 ID 配置不正确
 
 **解决方案**：
 
-1. 按照上方 "创建 Cloudflare 资源" 部分的步骤创建 Pages 项目
-2. 确保项目名称与 `wrangler.*.toml` 中的 `name` 字段一致
-3. 验证项目创建成功：`npx wrangler pages project list`
+1. 确保 D1 数据库、R2 存储桶、KV 命名空间已创建
+2. 确保 `wrangler.*.toml` 中的绑定 ID 与实际资源匹配
+3. 首次部署时 Worker 会自动创建，无需手动创建 Worker 项目
 
 ### Analytics Engine Dataset 错误
 
@@ -222,7 +196,7 @@ R2 服务需要在 Cloudflare Dashboard 中手动启用：
 
 ### 部署后 404
 
-确认 Worker 路由和绑定配置在 `wrangler.toml` 中正确设置
+确认 `wrangler.*.toml` 中 `main` 指向正确的构建产物 (`dist/server/index.js`)，且 `[assets]` 配置了 `directory = "dist/client"`
 
 ## ⚡ 性能优化
 
@@ -238,17 +212,16 @@ R2 服务需要在 Cloudflare Dashboard 中手动启用：
 
 - D1：5GB 存储 + 500 万次读/天
 - R2：10GB 存储（无出站费用）
-- Pages：无限请求 + 500 次构建/月
+- Workers：每日 10 万次免费请求
 - KV：100K 次读 + 1K 次写/天
 
 在 Cloudflare Dashboard 监控用量
 
 ## 📝 部署检查清单
 
-- [ ] Cloudflare Pages 项目已创建（测试/生产环境）
-- [ ] D1 数据库已创建并配置到 wrangler.toml
+- [ ] D1 数据库已创建并配置到 wrangler.\*.toml
 - [ ] R2 存储桶已创建（需先启用 R2 服务）
-- [ ] KV 命名空间已创建并配置到 wrangler.toml
+- [ ] KV 命名空间已创建并配置到 wrangler.\*.toml
 - [ ] 所有测试通过
 - [ ] 类型检查通过
 - [ ] 环境变量已配置
@@ -271,7 +244,7 @@ GitHub Actions 页面 → 选择 workflow → Run workflow
 
 ## 📚 相关文档
 
-- [Cloudflare Pages](https://developers.cloudflare.com/pages/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)

@@ -22,7 +22,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     environment:
       name: test
-      url: ${{ vars.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.pages.dev' }}
+      url: ${{ vars.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.workers.dev' }}
 
     steps:
       - name: Checkout code
@@ -61,7 +61,7 @@ jobs:
           # Use configured URL, or fallback to Cloudflare default URL
           DEPLOYMENT_URL="${{ vars.TEST_DEPLOYMENT_URL }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
-            DEPLOYMENT_URL="https://cloudflare-worker-template-test.pages.dev"
+            DEPLOYMENT_URL="https://cloudflare-worker-template-test.workers.dev"
           fi
           HEALTH_ENDPOINT="${DEPLOYMENT_URL}/api/health"
 
@@ -117,7 +117,7 @@ jobs:
         with:
           script: |
             const prNumber = ${{ steps.pr.outputs.result }};
-            const deploymentUrl = process.env.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.pages.dev';
+            const deploymentUrl = process.env.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.workers.dev';
             github.rest.issues.createComment({
               issue_number: prNumber,
               owner: context.repo.owner,
@@ -135,7 +135,7 @@ jobs:
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | Test |" >> $GITHUB_STEP_SUMMARY
-          echo "| URL | ${{ vars.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.pages.dev' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ vars.TEST_DEPLOYMENT_URL || 'https://cloudflare-worker-template-test.workers.dev' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | ${{ github.event.workflow_run.head_sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | ${{ github.event.workflow_run.head_branch }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Health Check | ✅ Passed |" >> $GITHUB_STEP_SUMMARY

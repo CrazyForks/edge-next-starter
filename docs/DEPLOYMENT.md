@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide describes how to deploy to Cloudflare Pages test and production environments.
+This guide describes how to deploy to Cloudflare Workers test and production environments.
 
 ## 📋 Prerequisites
 
@@ -17,41 +17,18 @@ Secrets, env vars naming, and bindings are maintained in [Environment Config](./
 
 ## ☁️ Create Cloudflare resources
 
-### 🚨 Important: Create Pages Project Before First Deployment
+### 🚨 Important: Ensure Resources Are Created Before First Deployment
 
-Before using CI/CD automatic deployment or manual deployment, **you must first create a Pages project on Cloudflare**, otherwise deployment will fail with error `Project not found`.
+Before using CI/CD automatic deployment or manual deployment, **you must first create Cloudflare resources (D1, R2, KV)**, otherwise deployment will fail.
 
-#### Method 1: Create via Cloudflare Dashboard (Recommended)
+Worker projects are automatically created on first `wrangler deploy` — no manual project creation is needed.
 
-1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Select your account
-3. Navigate to **Workers & Pages** from the left menu
-4. Click **Create application** → Select **Pages** tab
-5. Click **Create using direct upload** (or connect Git repository)
-6. Enter project name:
-   - Test environment: `cloudflare-worker-template-test`
-   - Production environment: `cloudflare-worker-template-prod`
-7. Click **Create project**
-8. **No need** to upload files immediately, you can skip after project creation
-
-#### Method 2: Create via Wrangler CLI
+#### Verify Worker Deployment Status
 
 ```bash
-# Test environment
-pnpm run build
-npx wrangler pages project create cloudflare-worker-template-test --production-branch=develop
-
-# Production environment
-npx wrangler pages project create cloudflare-worker-template-prod --production-branch=main
-```
-
-#### Verify Project Creation
-
-```bash
-# List all Pages projects
-npx wrangler pages project list
-
-# You should see your created project names
+# List all deployments
+npx wrangler deployments list --config wrangler.test.toml
+npx wrangler deployments list --config wrangler.prod.toml
 ```
 
 ### Other Cloudflare Resources
@@ -109,53 +86,50 @@ On push: tests → ESLint → type‑check → format check → build
 
 ## 🌐 Custom Domains
 
-1. Cloudflare Dashboard → Pages → project → Custom domains
+1. Cloudflare Dashboard → Workers & Pages → select Worker → Settings → Domains & Routes
 2. Add domain and configure DNS as prompted
 3. SSL/TLS certificate is provided automatically
 
 ## 📊 Environment Variables
 
-Add variables for different environments (Production/Preview) in Cloudflare Dashboard → Pages → project → Settings → Environment variables.
+Use `wrangler secret put <KEY> --config wrangler.test.toml` for secret variables, or add non-sensitive variables in the `[vars]` section of `wrangler.*.toml`.
 
 ## 🔍 Monitoring & Logs
 
 ```bash
 # List deployments
-wrangler pages deployment list
+wrangler deployments list --config wrangler.test.toml
 
 # Live logs
-wrangler pages deployment tail
-
-# Worker logs
-wrangler tail
+wrangler tail --config wrangler.test.toml
 ```
 
-Analytics: Cloudflare Dashboard → Pages → project → Analytics
+Analytics: Cloudflare Dashboard → Workers & Pages → select Worker → Analytics
 
 ## 🔙 Rollback
 
-**Dashboard**: Pages → project → Deployments → select previous → Rollback
+**Dashboard**: Workers & Pages → select Worker → Deployments → select previous version → Rollback
 
 **CLI**:
 
 ```bash
-wrangler pages deployment list
-wrangler pages deployment rollback <DEPLOYMENT_ID>
+wrangler deployments list --config wrangler.test.toml
+wrangler rollback --config wrangler.test.toml
 ```
 
 ## 🐛 Troubleshooting
 
-### Pages Project Not Found Error
+### Worker Deployment Failure
 
-**Error message**: `Project not found. The specified project name does not match any of your existing projects. [code: 8000007]`
+**Error message**: `Worker not found` or similar errors
 
-**Cause**: Pages project has not been created on Cloudflare
+**Cause**: Cloudflare resources (D1, R2, KV) not created or IDs misconfigured
 
 **Solution**:
 
-1. Follow the "Create Cloudflare resources" section above to create a Pages project
-2. Ensure the project name matches the `name` field in `wrangler.*.toml`
-3. Verify project creation: `npx wrangler pages project list`
+1. Ensure D1 databases, R2 buckets, and KV namespaces have been created
+2. Ensure binding IDs in `wrangler.*.toml` match actual resources
+3. Worker projects are auto-created on first deploy — no manual creation needed
 
 ### Analytics Engine Dataset Error
 
@@ -222,7 +196,7 @@ Confirm bucket name, created status, and binding config are correct
 
 ### 404 after deployment
 
-Confirm Worker routes and bindings are correctly configured in `wrangler.toml`
+Confirm `main` in `wrangler.*.toml` points to the correct build output (`dist/server/index.js`) and `[assets]` has `directory = "dist/client"`
 
 ## ⚡ Performance
 
@@ -238,7 +212,7 @@ See [Development Guide](./DEVELOPMENT.md) for details.
 
 - D1: 5GB storage + 5M reads/day
 - R2: 10GB storage (no egress fees)
-- Pages: unlimited requests + 500 builds/month
+- Workers: 100K free requests/day
 - KV: 100K reads + 1K writes/day
 
 Monitor usage in Cloudflare Dashboard
@@ -271,7 +245,7 @@ Create a new migration and commit; CI/CD runs it.
 
 ## 📚 References
 
-- [Cloudflare Pages](https://developers.cloudflare.com/pages/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)

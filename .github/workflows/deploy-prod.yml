@@ -22,7 +22,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     environment:
       name: production
-      url: ${{ vars.PRODUCTION_DEPLOYMENT_URL || 'https://cloudflare-worker-template-prod.pages.dev' }}
+      url: ${{ vars.PRODUCTION_DEPLOYMENT_URL || 'https://cloudflare-worker-template-prod.workers.dev' }}
 
     steps:
       - name: Checkout code
@@ -61,7 +61,7 @@ jobs:
           # Use configured URL, or fallback to Cloudflare default URL
           DEPLOYMENT_URL="${{ vars.PRODUCTION_DEPLOYMENT_URL }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
-            DEPLOYMENT_URL="https://cloudflare-worker-template-prod.pages.dev"
+            DEPLOYMENT_URL="https://cloudflare-worker-template-prod.workers.dev"
           fi
           HEALTH_ENDPOINT="${DEPLOYMENT_URL}/api/health"
 
@@ -107,7 +107,7 @@ jobs:
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | **Production** |" >> $GITHUB_STEP_SUMMARY
-          echo "| URL | ${{ vars.PRODUCTION_DEPLOYMENT_URL || 'https://cloudflare-worker-template-prod.pages.dev' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ vars.PRODUCTION_DEPLOYMENT_URL || 'https://cloudflare-worker-template-prod.workers.dev' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Health Check | ✅ Passed |" >> $GITHUB_STEP_SUMMARY

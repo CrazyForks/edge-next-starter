@@ -1,8 +1,12 @@
-# Cloudflare account ID
 name = "cloudflare-worker-template-test"
-compatibility_date = "2024-11-11"
-compatibility_flags = ["nodejs_compat", "nodejs_als"]
-pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2026-02-12"
+compatibility_flags = ["nodejs_compat"]
+main = "dist/server/index.js"
+
+# Static assets (vinext build output)
+[assets]
+not_found_handling = "none"
+directory = "dist/client"
 
 # D1 database binding
 [[d1_databases]]
