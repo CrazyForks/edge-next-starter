@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s | {{SITE_NAME}}',
   },
   description:
-    '{{SITE_DESCRIPTION}} - A production-ready full-stack template with Edge Runtime, D1 database, R2 storage, KV cache, and NextAuth authentication.',
+    '{{SITE_DESCRIPTION}} - A production-ready full-stack template with Edge Runtime, D1 database, R2 storage, KV cache, and better-auth authentication.',
   keywords: [
     'Next.js',
     'Cloudflare',
@@ -32,7 +32,8 @@ export const metadata: Metadata = {
     locale: 'en_US',
     siteName: '{{SITE_NAME}}',
     title: '{{SITE_NAME}} - Production-Ready Next.js + Cloudflare Starter',
-    description: 'A production-ready full-stack template with Edge Runtime, D1, R2, and NextAuth.',
+    description:
+      'A production-ready full-stack template with Edge Runtime, D1, R2, and better-auth.',
     images: [
       {
         url: '/og-image.png',
@@ -45,7 +46,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '{{SITE_NAME}} - Production-Ready Next.js + Cloudflare Starter',
-    description: 'A production-ready full-stack template with Edge Runtime, D1, R2, and NextAuth.',
+    description:
+      'A production-ready full-stack template with Edge Runtime, D1, R2, and better-auth.',
     images: ['/og-image.png'],
   },
   robots: {

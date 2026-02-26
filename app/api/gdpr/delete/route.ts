@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import { withRepositories, successResponse } from '@/lib/api';
 import { LoggerFactory } from '@/lib/logger';
 
@@ -13,7 +13,7 @@ export const runtime = 'edge';
  * Anonymizes user data rather than hard-deleting to maintain referential integrity
  */
 export async function DELETE(request: NextRequest) {
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session?.user?.id) {
     return NextResponse.json(

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, withRepositories } from '@/lib/api';
 import { AuthenticationError } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import { getPlanByPriceId, isSubscriptionActive, PlanConfig } from '@/lib/stripe';
 import type { SubscriptionStatus } from '@/lib/stripe/types';
 
@@ -12,7 +12,7 @@ export const runtime = 'edge';
  */
 export async function GET(request: NextRequest) {
   // Authenticate user
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user?.email) {
     throw new AuthenticationError('Authentication required');
   }

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
-import { getRequestContext } from '@cloudflare/next-on-pages';
 import { CloudflareEnv } from '@/types/cloudflare';
 
 /**
@@ -17,24 +16,27 @@ let prismaClient: PrismaClient | null = null;
 
 /**
  * Get Cloudflare environment bindings
- * Supports both Cloudflare Pages (via getRequestContext) and Cloudflare Workers (via process.env)
+ * Uses `cloudflare:workers` env import (for vinext + @cloudflare/vite-plugin)
+ *
+ * In Workers runtime (dev via vite + workerd, and production), bindings are
+ * available through `import { env } from "cloudflare:workers"`.
  *
  * IMPORTANT: This function must only be called within a request context.
  * Do NOT call at module initialization time.
  */
 export function getCloudflareEnv(): CloudflareEnv | null {
-  // Try getRequestContext first (for Cloudflare Pages with @cloudflare/next-on-pages)
-  // This is the recommended approach for Cloudflare Pages
   try {
-    const { env } = getRequestContext();
-    if (env && typeof (env as CloudflareEnv).DB !== 'undefined') {
-      return env as CloudflareEnv;
+    // Dynamic import to avoid breaking in non-Workers environments (e.g., vitest)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { env: workersEnv } = require('cloudflare:workers');
+    if (workersEnv && typeof (workersEnv as CloudflareEnv).DB !== 'undefined') {
+      return workersEnv as CloudflareEnv;
     }
   } catch {
-    // getRequestContext() failed - not in request context or not on Cloudflare Pages
+    // Not in Workers runtime (e.g., running vitest or plain Node.js)
   }
 
-  // Fallback to process.env (for Cloudflare Workers or local development)
+  // Fallback to process.env (for local development without Workers runtime)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const env = process.env as any as CloudflareEnv;
 

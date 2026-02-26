@@ -7,6 +7,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { POST } from '@/app/api/register/route';
 import { NextRequest } from 'next/server';
 
+// Mock Prisma client (for better-auth account creation)
+const mockPrismaAccountCreate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 1 }));
+vi.mock('@/lib/db/client', () => ({
+  prisma: {
+    account: {
+      create: mockPrismaAccountCreate,
+    },
+  },
+}));
+
 // Mock dependencies
 vi.mock('@/lib/auth/password', () => ({
   hashPassword: vi.fn().mockResolvedValue('hashed_password_123'),

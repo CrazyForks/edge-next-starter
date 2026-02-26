@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import { withRepositories } from '@/lib/api';
 import { exportUserData } from '@/lib/gdpr/data-exporter';
 
@@ -10,7 +10,7 @@ export const runtime = 'edge';
  * Export all data belonging to the authenticated user (GDPR Art. 20)
  */
 export async function GET(request: NextRequest) {
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session?.user?.id) {
     return NextResponse.json(

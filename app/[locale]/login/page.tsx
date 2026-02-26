@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn } from '@/lib/auth-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input, Label, FormError, OrDivider } from '@/components/ui';
@@ -31,17 +31,21 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        router.push(callbackUrl);
-      }
+      await signIn.email(
+        {
+          email,
+          password,
+          callbackURL: callbackUrl,
+        },
+        {
+          onSuccess: () => {
+            router.push(callbackUrl);
+          },
+          onError: ctx => {
+            setError(ctx.error.message || 'Invalid email or password');
+          },
+        }
+      );
     } catch (err) {
       setError('Login failed, please try again later');
       console.error('Login error:', err);
@@ -54,7 +58,10 @@ export default function LoginPage() {
     setOauthLoading(provider);
     setError('');
     try {
-      await signIn(provider, { callbackUrl });
+      await signIn.social({
+        provider,
+        callbackURL: callbackUrl,
+      });
     } catch (err) {
       setError('Google login failed');
       console.error('OAuth login error:', err);

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Use vi.hoisted to ensure mock functions are available before vi.mock is executed
-const mockAuth = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const mockUploadFile = vi.hoisted(() => vi.fn());
 const mockDownloadFile = vi.hoisted(() => vi.fn());
 const mockCheckUploadRateLimit = vi.hoisted(() => vi.fn());
@@ -19,9 +19,13 @@ const mockGetAdjustedRateLimit = vi.hoisted(() =>
   vi.fn().mockReturnValue({ limit: 30, isStrict: false })
 );
 
-// Mock auth
-vi.mock('@/lib/auth/config', () => ({
-  auth: mockAuth,
+// Mock auth (better-auth)
+vi.mock('@/lib/auth', () => ({
+  auth: {
+    api: {
+      getSession: mockGetSession,
+    },
+  },
 }));
 
 // Mock R2 client
@@ -158,7 +162,7 @@ describe('Upload API', () => {
 
   describe('POST /api/upload', () => {
     it('should reject unauthenticated requests', async () => {
-      mockAuth.mockResolvedValue(null);
+      mockGetSession.mockResolvedValue(null);
 
       const file = createMockFile('test content', 'test.txt');
       const request = createUploadRequest(file);
@@ -175,7 +179,7 @@ describe('Upload API', () => {
     });
 
     it('should reject requests exceeding rate limit', async () => {
-      mockAuth.mockResolvedValue({ user: { id: '1' } });
+      mockGetSession.mockResolvedValue({ user: { id: '1' } });
       mockCheckUploadRateLimit.mockResolvedValue({
         allowed: false,
         limit: 10,
@@ -199,7 +203,7 @@ describe('Upload API', () => {
     });
 
     it('should reject requests without file', async () => {
-      mockAuth.mockResolvedValue({ user: { id: '1' } });
+      mockGetSession.mockResolvedValue({ user: { id: '1' } });
       mockCheckUploadRateLimit.mockResolvedValue({
         allowed: true,
         limit: 10,
@@ -223,7 +227,7 @@ describe('Upload API', () => {
     });
 
     it('should reject files exceeding max size', async () => {
-      mockAuth.mockResolvedValue({ user: { id: '1' } });
+      mockGetSession.mockResolvedValue({ user: { id: '1' } });
       mockCheckUploadRateLimit.mockResolvedValue({
         allowed: true,
         limit: 10,
@@ -250,7 +254,7 @@ describe('Upload API', () => {
     });
 
     it('should upload file successfully', async () => {
-      mockAuth.mockResolvedValue({ user: { id: '1' } });
+      mockGetSession.mockResolvedValue({ user: { id: '1' } });
       mockCheckUploadRateLimit.mockResolvedValue({
         allowed: true,
         limit: 10,
@@ -284,7 +288,7 @@ describe('Upload API', () => {
     });
 
     it('should handle R2 storage unavailable', async () => {
-      mockAuth.mockResolvedValue({ user: { id: '1' } });
+      mockGetSession.mockResolvedValue({ user: { id: '1' } });
       mockCheckUploadRateLimit.mockResolvedValue({
         allowed: true,
         limit: 10,

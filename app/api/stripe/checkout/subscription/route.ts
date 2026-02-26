@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, withRepositories, withRateLimit } from '@/lib/api';
 import { ValidationError, AuthenticationError } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import {
   getStripeClient,
   CHECKOUT_URLS,
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     request,
     async () => {
       // Authenticate user
-      const session = await auth();
+      const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user?.email) {
         throw new AuthenticationError('Authentication required');
       }

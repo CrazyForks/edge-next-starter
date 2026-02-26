@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { handleSignOut } from '@/app/actions/auth';
@@ -6,7 +7,7 @@ import { handleSignOut } from '@/app/actions/auth';
 export const runtime = 'edge';
 
 export default async function Home() {
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: await headers() });
 
   return (
     <div className="min-h-screen flex flex-col p-8">

@@ -58,7 +58,7 @@ declare global {
       // Database connection string (for Prisma)
       DATABASE_URL?: string;
 
-      // NextAuth configuration
+      // Auth configuration (better-auth uses NEXTAUTH_SECRET for backward compatibility)
       NEXTAUTH_SECRET?: string;
       NEXTAUTH_URL?: string;
 

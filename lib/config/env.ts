@@ -9,7 +9,7 @@ const envSchema = z
     // Node environment
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-    // NextAuth configuration
+    // Auth configuration (better-auth uses NEXTAUTH_SECRET for backward compatibility)
     NEXTAUTH_SECRET: z.string().min(1, 'NEXTAUTH_SECRET is required').default('dev-secret'),
     NEXTAUTH_URL: z.string().url().optional(),
 

@@ -1,11 +1,12 @@
 /**
- * Middleware combining next-intl i18n routing, NextAuth authentication,
+ * Proxy (formerly middleware.ts, renamed for Next.js 16+ compatibility)
+ * Combines next-intl i18n routing, better-auth authentication,
  * CORS, and CSRF protection
  *
  * Strategy: Default-protected - all routes require authentication unless explicitly public
  */
 
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
@@ -50,7 +51,7 @@ function stripLocale(pathname: string): string {
   return pathname;
 }
 
-export default auth(req => {
+export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   // Skip i18n for API routes - handle directly
@@ -82,7 +83,11 @@ export default auth(req => {
 
   // Get the actual path without locale prefix for auth checks
   const actualPath = stripLocale(pathname);
-  const isAuthenticated = !!req.auth;
+
+  // Check authentication via better-auth session
+  const session = await auth.api.getSession({ headers: req.headers });
+  const isAuthenticated = !!session;
+
   const isPublicPath = publicPaths.some(
     path => actualPath === path || actualPath.startsWith(path + '/')
   );
@@ -115,9 +120,9 @@ export default auth(req => {
 
   // Apply CORS and CSRF token to i18n response
   return ensureCsrfToken(req, applyCorsHeaders(req, i18nResponse));
-});
+}
 
-// Configure routes where middleware should run
+// Configure routes where proxy should run
 export const config = {
   matcher: [
     /*

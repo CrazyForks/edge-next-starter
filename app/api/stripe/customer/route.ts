@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { successResponse, withRepositories, type ApiSuccessResponse } from '@/lib/api';
 import { AuthenticationError } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 
 export const runtime = 'edge';
 
@@ -62,7 +62,7 @@ export async function GET(
   request: NextRequest
 ): Promise<NextResponse<ApiSuccessResponse<CustomerResponse>>> {
   // Authenticate user
-  const session = await auth();
+  const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user?.email) {
     throw new AuthenticationError('Authentication required');
   }

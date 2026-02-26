@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, withRepositories, withRateLimit } from '@/lib/api';
 import { AuthenticationError, ValidationError } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import {
   getStripeClient,
   StripeCustomerNotFoundError,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     request,
     async () => {
       // Authenticate user
-      const session = await auth();
+      const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user?.email) {
         throw new AuthenticationError('Authentication required');
       }

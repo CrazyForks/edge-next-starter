@@ -1,0 +1,57 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "edge-next-starter",
+  "compatibility_date": "2026-02-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "assets": {
+    "not_found_handling": "none"
+  },
+
+  // D1 database binding
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cloudflare-worker-template-local",
+      "database_id": "local",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // R2 object storage binding
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "cloudflare-worker-template-local"
+    }
+  ],
+
+  // KV namespace binding
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "local"
+    }
+  ],
+
+  // Environment variables
+  "vars": {
+    "ENVIRONMENT": "local",
+    "NODE_ENV": "development",
+    "ANALYTICS_SINK": "log",
+    "RATE_LIMIT_ENABLED": "true",
+    "RATE_LIMIT_MAX_REQUESTS": "100",
+    "RATE_LIMIT_WINDOW_SECONDS": "60",
+    "ANALYTICS_ENABLED": "true",
+    "LOG_LEVEL": "INFO",
+    "LOG_FORMAT": "json",
+    "LOG_INCLUDE_TIMESTAMP": "true",
+    "DATABASE_QUERY_TIMEOUT": "5000",
+    "CACHE_DEFAULT_TTL": "3600",
+    "ENABLE_PERFORMANCE_MONITORING": "true",
+    "SLOW_QUERY_THRESHOLD_MS": "1000",
+    "NEXTAUTH_SECRET": "dev-secret",
+    "STRIPE_SECRET_KEY": "sk_test_xxx",
+    "STRIPE_WEBHOOK_SECRET": "whsec_xxx"
+  }
+}

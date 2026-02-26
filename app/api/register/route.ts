@@ -15,6 +15,7 @@ import { createCacheClient } from '@/lib/cache/client';
 import { ResourceAlreadyExistsError } from '@/lib/errors';
 import { analytics, AnalyticsEventType } from '@/lib/analytics';
 import { parseAndValidateBody, userRegistrationSchema } from '@/lib/validators';
+import { prisma } from '@/lib/db/client';
 
 // Use Edge runtime (compatible with Web Crypto API)
 export const runtime = 'edge';
@@ -42,6 +43,18 @@ export async function POST(request: NextRequest) {
           email: validatedData.email,
           name: displayName,
           password: hashedPassword,
+        });
+
+        // Create credential account entry for better-auth compatibility
+        // better-auth expects passwords stored in the accounts table
+        await prisma.account.create({
+          data: {
+            userId: user.id,
+            type: 'credential',
+            provider: 'credential',
+            providerAccountId: validatedData.email,
+            password: hashedPassword,
+          },
         });
 
         // Clear cache

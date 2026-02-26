@@ -22,7 +22,7 @@ function generateToken(): string {
  * Routes exempt from CSRF validation
  */
 const CSRF_EXEMPT_PATHS = [
-  '/api/auth/', // NextAuth handles its own CSRF
+  '/api/auth/', // better-auth handles its own CSRF
   '/api/stripe/webhook', // Stripe webhook uses signature verification
   '/api/health', // Health check endpoint
   '/api/monitoring/', // Monitoring endpoints

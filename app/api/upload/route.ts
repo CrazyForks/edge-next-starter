@@ -14,7 +14,7 @@ import {
   TooManyRequestsError,
   ValidationError,
 } from '@/lib/errors';
-import { auth } from '@/lib/auth/config';
+import { auth } from '@/lib/auth';
 import { checkUploadRateLimit, checkRateLimit } from '@/lib/rate-limiter';
 import { createSignedDownloadUrl, verifySignedUrl } from '@/lib/signed-url';
 import { getClientIdentifier, getAdjustedRateLimit } from '@/lib/utils/client-identifier';
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   return withMiddleware(request, () =>
     withApiHandler(async () => {
       // Check authentication
-      const session = await auth();
+      const session = await auth.api.getSession({ headers: request.headers });
       if (!session?.user?.id) {
         throw new AuthenticationError('Please login to upload files');
       }

@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Hoist all mocks to ensure they're available before module imports
-const mockAuth = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const mockStripeCustomersCreate = vi.hoisted(() => vi.fn());
 const mockStripeCheckoutSessionsCreate = vi.hoisted(() => vi.fn());
 const mockCustomersRepo = vi.hoisted(() => ({
@@ -26,9 +26,13 @@ const mockSubscriptionsRepo = vi.hoisted(() => ({
   findByCustomerId: vi.fn(),
 }));
 
-// Mock auth
-vi.mock('@/lib/auth/config', () => ({
-  auth: mockAuth,
+// Mock auth (better-auth)
+vi.mock('@/lib/auth', () => ({
+  auth: {
+    api: {
+      getSession: mockGetSession,
+    },
+  },
 }));
 
 // Mock Stripe client
@@ -133,7 +137,7 @@ function createRequest(body: unknown, origin = 'http://localhost:3000'): NextReq
 describe('Stripe Subscription Checkout API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockReset();
+    mockGetSession.mockReset();
     mockStripeCustomersCreate.mockReset();
     mockStripeCheckoutSessionsCreate.mockReset();
     mockCustomersRepo.findByUserId.mockReset();
@@ -145,7 +149,7 @@ describe('Stripe Subscription Checkout API', () => {
   describe('POST /api/stripe/checkout/subscription', () => {
     describe('Authentication', () => {
       it('should reject unauthenticated requests', async () => {
-        mockAuth.mockResolvedValue(null);
+        mockGetSession.mockResolvedValue(null);
 
         const request = createRequest({ priceId: 'price_123' });
         const response = await POST(request);
@@ -160,7 +164,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should reject session without email', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', name: 'Test User' },
         });
 
@@ -178,7 +182,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('Validation', () => {
       it('should reject requests without priceId', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -196,7 +200,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should reject invalid JSON body', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
 
@@ -222,7 +226,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('Active subscription check', () => {
       it('should reject if user already has active subscription', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
@@ -251,7 +255,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('New customer creation', () => {
       it('should create checkout session for new customer', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com', name: 'Test User' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -300,7 +304,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should include trial days for new customers', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -332,7 +336,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should not include trial for returning customers', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -367,7 +371,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('Existing customer handling', () => {
       it('should use existing customer for checkout', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
@@ -406,7 +410,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('Custom URLs and metadata', () => {
       it('should use custom success and cancel URLs', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
@@ -437,7 +441,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should pass metadata to checkout session', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
@@ -469,7 +473,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should use custom trial days when provided', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -504,7 +508,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should disable promotion codes when allowPromotionCodes is false', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
@@ -535,7 +539,7 @@ describe('Stripe Subscription Checkout API', () => {
 
     describe('Stripe API errors', () => {
       it('should handle Stripe customer creation error', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue(null);
@@ -553,7 +557,7 @@ describe('Stripe Subscription Checkout API', () => {
       });
 
       it('should handle Stripe checkout session creation error', async () => {
-        mockAuth.mockResolvedValue({
+        mockGetSession.mockResolvedValue({
           user: { id: '1', email: 'test@example.com' },
         });
         mockCustomersRepo.findByUserId.mockResolvedValue({
