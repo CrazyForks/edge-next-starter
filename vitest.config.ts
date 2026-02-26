@@ -47,6 +47,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
+      // cloudflare:workers is a Workers built-in module unavailable in Node.js.
+      // Provide a stub so Vite can resolve the import; vi.mock in vitest.setup.ts
+      // replaces it with the actual test mock at runtime.
+      'cloudflare:workers': path.resolve(__dirname, './vitest.cloudflare-stub.ts'),
     },
   },
 });

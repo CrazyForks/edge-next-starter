@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
+import { env as cloudflareEnv } from 'cloudflare:workers';
 import { CloudflareEnv } from '@/types/cloudflare';
 
 /**
@@ -16,40 +17,25 @@ let prismaClient: PrismaClient | null = null;
 
 /**
  * Get Cloudflare environment bindings
- * Uses `cloudflare:workers` env import (for vinext + @cloudflare/vite-plugin)
- *
- * In Workers runtime (dev via vite + workerd, and production), bindings are
- * available through `import { env } from "cloudflare:workers"`.
+ * Uses static ESM `import { env } from "cloudflare:workers"` which is:
+ * - Resolved by @cloudflare/vite-plugin in dev (workerd runtime)
+ * - Resolved as Workers built-in module in production
+ * - Mocked via vi.mock('cloudflare:workers') in vitest
  *
  * IMPORTANT: This function must only be called within a request context.
  * Do NOT call at module initialization time.
  */
 export function getCloudflareEnv(): CloudflareEnv | null {
   try {
-    // Dynamic import to avoid breaking in non-Workers environments (e.g., vitest)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { env: workersEnv } = require('cloudflare:workers');
-    if (workersEnv && typeof (workersEnv as CloudflareEnv).DB !== 'undefined') {
-      return workersEnv as CloudflareEnv;
+    const env = cloudflareEnv as unknown as CloudflareEnv;
+    if (env && typeof env.DB !== 'undefined') {
+      return env;
     }
   } catch {
-    // Not in Workers runtime (e.g., running vitest or plain Node.js)
+    // cloudflareEnv not available or not properly initialized
   }
 
-  // Fallback to process.env (for local development without Workers runtime)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const env = process.env as any as CloudflareEnv;
-
-  // Check whether running in Cloudflare environment
-  if (!env || typeof env.DB === 'undefined') {
-    // Only warn in development to avoid log spam
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('Cloudflare bindings not available. Running in local mode?');
-    }
-    return null;
-  }
-
-  return env;
+  return null;
 }
 
 /**

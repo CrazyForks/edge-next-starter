@@ -51,7 +51,7 @@ function stripLocale(pathname: string): string {
   return pathname;
 }
 
-export default async function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   // Skip i18n for API routes - handle directly

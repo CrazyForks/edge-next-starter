@@ -21,12 +21,12 @@ describe('Database Client', () => {
       expect(env).toBeNull();
     });
 
-    it('should warn when running in local mode', () => {
+    it('should return null silently when DB binding is missing', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      getCloudflareEnv();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Cloudflare bindings not available. Running in local mode?'
-      );
+      const env = getCloudflareEnv();
+      expect(env).toBeNull();
+      // No warning logged — cloudflare:workers provides an empty stub in tests
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
   });
 
