@@ -31,6 +31,11 @@ bucket_name = "cloudflare-worker-template-prod"
 binding = "KV"
 id = "52ca46605f5d4d0698f4d0bceac713a1"
 
+# Workers Logs — collect console output for debugging
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
