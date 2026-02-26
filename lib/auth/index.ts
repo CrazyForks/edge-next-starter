@@ -13,26 +13,28 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { nextCookies } from 'better-auth/next-js';
 import { env as cloudflareEnv } from 'cloudflare:workers';
 import { prisma } from '@/lib/db/client';
+import { createAuthPrismaProxy } from '@/lib/db/auth-prisma-proxy';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 
 /**
- * Resolve auth secret from Cloudflare env bindings or process.env fallback.
+ * Resolve environment variable from Cloudflare env bindings or process.env fallback.
  * Secrets set via `wrangler secret put` are only accessible through the
  * `cloudflare:workers` env binding, NOT via `process.env`.
  */
-function getAuthSecret(): string | undefined {
-  // Cloudflare Workers: secrets are in env bindings
+function getEnvVar(key: string): string | undefined {
   const cfEnv = cloudflareEnv as Record<string, unknown>;
-  if (cfEnv?.BETTER_AUTH_SECRET) return String(cfEnv.BETTER_AUTH_SECRET);
-  if (cfEnv?.NEXTAUTH_SECRET) return String(cfEnv.NEXTAUTH_SECRET);
-  // Fallback: process.env (local dev / Node.js)
-  return process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (cfEnv?.[key]) return String(cfEnv[key]);
+  return process.env[key];
+}
+
+function getAuthSecret(): string | undefined {
+  return getEnvVar('BETTER_AUTH_SECRET') || getEnvVar('NEXTAUTH_SECRET');
 }
 
 export const auth = betterAuth({
   secret: getAuthSecret(),
 
-  database: prismaAdapter(prisma, {
+  database: prismaAdapter(createAuthPrismaProxy(prisma), {
     provider: 'sqlite',
   }),
 
@@ -47,8 +49,8 @@ export const auth = betterAuth({
 
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: getEnvVar('GOOGLE_CLIENT_ID') || '',
+      clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET') || '',
     },
   },
 
