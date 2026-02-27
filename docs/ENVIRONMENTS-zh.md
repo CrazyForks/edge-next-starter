@@ -4,30 +4,30 @@
 
 ## 环境一览
 
-| 环境     | 配置文件             | 数据库名称                         | R2 绑定  | KV 绑定 | 触发分支              | 主要命令                     |
-| -------- | -------------------- | ---------------------------------- | -------- | ------- | --------------------- | ---------------------------- |
-| 本地开发 | `wrangler.toml`      | `cloudflare-worker-template-local` | `BUCKET` | `KV`    | 手动                  | `pnpm run cf:dev`            |
-| 测试环境 | `wrangler.test.toml` | `cloudflare-worker-template-test`  | `BUCKET` | `KV`    | `develop` / `preview` | `pnpm run pages:deploy:test` |
-| 生产环境 | `wrangler.prod.toml` | `cloudflare-worker-template-prod`  | `BUCKET` | `KV`    | `main`                | `pnpm run pages:deploy:prod` |
+| 环境     | 配置文件             | 数据库名称                         | R2 绑定  | KV 绑定 | 触发分支              | 主要命令                              |
+| -------- | -------------------- | ---------------------------------- | -------- | ------- | --------------------- | ------------------------------------- |
+| 本地开发 | `wrangler.toml`      | `cloudflare-worker-template-local` | `BUCKET` | `KV`    | 手动                  | `pnpm dev`                            |
+| 测试环境 | `wrangler.test.toml` | `cloudflare-worker-template-test`  | `BUCKET` | `KV`    | `develop` / `preview` | `pnpm deploy`（测试环境通过 CI 部署） |
+| 生产环境 | `wrangler.prod.toml` | `cloudflare-worker-template-prod`  | `BUCKET` | `KV`    | `main`                | `pnpm deploy`（生产环境通过 CI 部署） |
 
-> 📌 **注意**：Cloudflare Pages 和 Workers 会根据 `wrangler.*.toml` 中的绑定名称注入环境变量。代码中默认读取 `process.env.BUCKET`、`process.env.DB` 和 `process.env.KV`，请确保名称保持一致。
+> 📌 **注意**：Cloudflare Workers 会根据 `wrangler.*.toml` 中的绑定名称注入环境变量。在 Workers 中，secrets 和绑定通过 `import { env } from 'cloudflare:workers'` 访问，而非 `process.env`。请确保绑定名称保持一致。
 
 ## 必需的 Secrets
 
-在仓库 **Settings → Secrets and variables → Actions** 中定义以下密钥，以便 CI/CD 工作流可以创建数据库、执行迁移并部署页面：
+在仓库 **Settings → Secrets and variables → Actions** 中定义以下密钥，以便 CI/CD 工作流可以创建数据库、执行迁移并部署 Workers：
 
-| 名称                                        | 用途                                                                   |
-| ------------------------------------------- | ---------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`                      | 授权 Wrangler 创建/迁移 D1、R2、KV 并部署 Pages                        |
-| `CLOUDFLARE_ACCOUNT_ID`                     | 标识 Cloudflare 账户，供 Wrangler 调用                                 |
-| `NEXTAUTH_SECRET`                           | NextAuth JWT 会话所需，使用 `wrangler secret put NEXTAUTH_SECRET` 设置 |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | NextAuth 的 Google OAuth 凭据，两项必须成对配置                        |
+| 名称                                        | 用途                                               |
+| ------------------------------------------- | -------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`                      | 授权 Wrangler 创建/迁移 D1、R2、KV 并部署 Workers  |
+| `CLOUDFLARE_ACCOUNT_ID`                     | 标识 Cloudflare 账户，供 Wrangler 调用             |
+| `BETTER_AUTH_SECRET` 或 `NEXTAUTH_SECRET`   | 认证 JWT 会话所需，使用 `wrangler secret put` 设置 |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth 凭据，两项必须成对配置                |
 
-如有额外的第三方服务密钥，请在此处新增并在 `wrangler.*.toml` 的 `[vars]` 中引用。对于 Google OAuth，请分别在 Cloudflare Pages 的 Preview 与 Production 环境中配置对应的 Client ID/Secret，确保回调域名匹配。
+如有额外的第三方服务密钥，请在此处新增并在 `wrangler.*.toml` 的 `[vars]` 中引用。对于 Google OAuth，请通过 `wrangler secret put` 为各个 Workers 环境配置对应的 Client ID/Secret，确保回调域名匹配。
 
-### NEXTAUTH_SECRET 配置详解
+### BETTER_AUTH_SECRET 或 NEXTAUTH_SECRET 配置详解
 
-`NEXTAUTH_SECRET` 是 NextAuth.js 用于加密和签名 JWT tokens 的关键安全密钥。正确配置对于认证安全至关重要。
+`BETTER_AUTH_SECRET` 或 `NEXTAUTH_SECRET` 是用于加密和签名 JWT tokens 的关键安全密钥。正确配置对于认证安全至关重要。
 
 #### 生成安全密钥
 
@@ -54,20 +54,22 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 **CI/CD 构建：**
 
-- CI 构建会自动跳过 NEXTAUTH_SECRET 验证
+- CI 构建会自动跳过 BETTER_AUTH_SECRET 或 NEXTAUTH_SECRET 验证
 - 构建过程使用 `CI=true` 标志以允许编译期使用默认值
 - 运行时验证仍会强制执行生产环境要求
 
-**测试/生产部署（Cloudflare Pages）：**
+**测试/生产部署（Cloudflare Workers）：**
 
 1. 使用上述方法生成唯一的密钥
-2. 在 Cloudflare Pages 控制台中配置：
-   - 进入你的 Pages 项目
-   - 点击 `Settings`（设置）→ `Environment variables`（环境变量）
-   - 添加变量：
-     - **Name**（名称）：`NEXTAUTH_SECRET`
-     - **Value**（值）：（粘贴你生成的密钥）
-     - **Environment**（环境）：根据需要选择 `Production`（生产）和/或 `Preview`（预览）
+2. 通过 `wrangler secret put` 配置：
+
+   ```bash
+   # 测试环境
+   wrangler secret put BETTER_AUTH_SECRET --env test
+
+   # 生产环境
+   wrangler secret put BETTER_AUTH_SECRET --env production
+   ```
 
 **安全最佳实践：**
 
@@ -81,7 +83,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 **验证行为说明：**
 
-应用程序会根据运行时环境验证 `NEXTAUTH_SECRET`：
+应用程序会根据运行时环境验证 `BETTER_AUTH_SECRET` 或 `NEXTAUTH_SECRET`：
 
 - **开发环境**（`NODE_ENV=development`）：接受默认值
 - **CI 构建**（`CI=true`）：构建阶段跳过验证
@@ -91,10 +93,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 如果遇到错误 "NEXTAUTH_SECRET must be configured for production environments"：
 
-1. 确保已在 Cloudflare Pages 环境变量中设置 `NEXTAUTH_SECRET`
-2. 验证环境变量已为正确的环境设置（生产/预览）
+1. 确保已通过 `wrangler secret put` 设置 `BETTER_AUTH_SECRET` 或 `NEXTAUTH_SECRET`
+2. 验证 secret 已为正确的 Workers 环境设置
 3. 检查是否使用了默认的 `dev-secret` 值
-4. 更新环境变量后重新部署应用程序
+4. 更新 secret 后重新部署应用程序
 
 ## 绑定校验清单
 

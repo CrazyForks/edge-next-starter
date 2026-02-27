@@ -1,6 +1,6 @@
 # Quick Start
 
-Welcome to the Next.js + Cloudflare full‑stack starter! Follow these steps to get up and running quickly.
+Welcome to the Next.js + Cloudflare Workers full‑stack starter! Follow these steps to get up and running quickly.
 
 ## 📦 Installation
 
@@ -134,30 +134,13 @@ pnpm run db:seed -- --env=local
 
 ## 🚀 Start the dev server
 
-### Option A: Next.js dev mode (fast iteration)
-
 ```bash
 pnpm dev
 ```
 
 Visit http://localhost:3000
 
-Note: Cloudflare bindings (D1, R2, KV) are not available in this mode.
-
-### Option B: Cloudflare full mode (recommended)
-
-```bash
-# Build first
-pnpm build
-pnpm run pages:build
-
-# Start Cloudflare dev server
-pnpm run cf:dev
-```
-
-Visit http://localhost:8788
-
-Recommended for testing Cloudflare features, DB operations, file uploads, etc.
+The dev server runs in Workers runtime with full access to Cloudflare bindings (D1, R2, KV).
 
 ## ✅ Verify setup
 
@@ -191,7 +174,7 @@ pnpm install
 
 ### Cloudflare bindings unavailable
 
-Use `pnpm run cf:dev` instead of `pnpm dev`.
+Ensure you are using `pnpm dev`, which runs in Workers runtime with full D1/R2/KV access.
 
 ### Database not found
 
@@ -214,10 +197,9 @@ reference: [BUG: Received structured exception #0xc0000005: access violation;](h
 
 ## 💡 Tips
 
-1. Use `pnpm dev` for fast UI work
-2. Use `pnpm run cf:dev` to test Cloudflare features
-3. Run `pnpm test` before commit
-4. Linting and formatting run automatically
+1. Use `pnpm dev` for development (runs in Workers runtime with full Cloudflare bindings)
+2. Run `pnpm test` before commit
+3. Linting and formatting run automatically
 
 ---
 

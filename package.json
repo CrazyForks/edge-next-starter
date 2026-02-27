@@ -40,11 +40,20 @@
   },
   "keywords": [
     "next.js",
+    "vinext",
+    "vite",
     "cloudflare",
+    "cloudflare-workers",
     "edge",
     "d1",
     "r2",
-    "workers"
+    "kv",
+    "better-auth",
+    "prisma",
+    "react",
+    "typescript",
+    "fullstack",
+    "starter-template"
   ],
   "author": "",
   "license": "MIT",

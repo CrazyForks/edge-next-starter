@@ -167,7 +167,7 @@ VALUES (1, 'oauth', 'google', '1234567890', ...);
    https://your-domain.com/api/auth/callback/google
    ```
 
-2. 在 Cloudflare Pages 环境变量中配置（敏感值推荐使用 `wrangler secret put ...`）：
+2. 通过 `wrangler secret put` 配置密钥：
    ```
    NEXTAUTH_URL=https://your-domain.com
    GOOGLE_CLIENT_ID=你的客户端ID

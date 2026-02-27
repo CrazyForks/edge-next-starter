@@ -29,6 +29,7 @@ yarn-error.log*
 .env*.local
 .env
 .dev.vars
+.pnpm-store
 
 # Vercel
 .vercel
@@ -61,6 +62,7 @@ CLAUDE.md
 AGENTS.md
 .spec-workflow
 skills-lock.json
+.playwright-mcp
 
 # Prisma local dev database
 prisma/dev.db

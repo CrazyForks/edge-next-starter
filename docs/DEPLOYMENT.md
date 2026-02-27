@@ -219,7 +219,7 @@ Monitor usage in Cloudflare Dashboard
 
 ## 📝 Deployment Checklist
 
-- [ ] Cloudflare Pages projects created (test/production environments)
+- [ ] Cloudflare Workers configured (test/production environments)
 - [ ] D1 databases created and configured in wrangler.toml
 - [ ] R2 buckets created (requires R2 service enabled first)
 - [ ] KV namespaces created and configured in wrangler.toml

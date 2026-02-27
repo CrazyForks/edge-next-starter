@@ -40,11 +40,8 @@ cloudflare-worker-template/
 ### 1. Local Development
 
 ```bash
-# Fast UI dev (no Cloudflare bindings)
+# Local development (runs in Workers runtime with Cloudflare bindings)
 pnpm dev
-
-# Full‑stack dev (with Cloudflare)
-pnpm build && pnpm run pages:build && pnpm run cf:dev
 ```
 
 ### 2. Code Quality

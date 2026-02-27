@@ -4,13 +4,15 @@ English | [简体中文](./README-zh.md)
 
 <div align="center">
 
+![vinext](https://img.shields.io/badge/vinext-Vite_+_Next.js-646CFF?style=flat&logo=vite)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?style=flat&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat&logo=typescript)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat&logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.17-38B2AC?style=flat&logo=tailwind-css)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-F38020?style=flat&logo=cloudflare)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare)
 ![Prisma](https://img.shields.io/badge/Prisma-6.17.1-2D3748?style=flat&logo=prisma)
-![Node.js](https://img.shields.io/badge/Node.js-≥20.0.0-339933?style=flat&logo=node.js)
+![better-auth](https://img.shields.io/badge/better--auth-Edge_Compatible-8B5CF6?style=flat)
+![Node.js](https://img.shields.io/badge/Node.js-≥22.0.0-339933?style=flat&logo=node.js)
 ![pnpm](https://img.shields.io/badge/pnpm-8.15.0-F69220?style=flat&logo=pnpm)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
@@ -18,24 +20,26 @@ English | [简体中文](./README-zh.md)
 
 ---
 
-# Next.js + Cloudflare Full‑Stack Starter
+# Next.js + Cloudflare Workers Full‑Stack Starter (vinext)
 
-An out‑of‑the‑box Next.js + Cloudflare full‑stack starter integrating Edge Runtime, D1 database, R2 storage, KV cache, Analytics Engine hooks, and a complete CI/CD pipeline.
+A production‑ready Next.js + Cloudflare Workers full‑stack starter powered by [vinext](https://github.com/cloudflare/vinext) (Vite‑based Next.js reimplementation). Integrates D1 database, R2 storage, KV cache, better‑auth authentication, next‑intl i18n, and a complete CI/CD pipeline — all running natively on Cloudflare Workers edge network.
 
 ## ✨ Features
 
 ### Core Stack
 
-- **Next.js 15.5.2** — App Router with TypeScript
-- **Cloudflare Pages** — Edge Runtime deployment
+- **[vinext](https://github.com/cloudflare/vinext)** — Vite‑based Next.js reimplementation for Cloudflare Workers (up to 4x faster builds, 57% smaller bundles)
+- **Next.js 15.5.2** — App Router with RSC (React Server Components)
+- **Cloudflare Workers** — Native edge deployment (not Pages)
 - **D1 Database** — Edge SQLite database
 - **R2 Storage** — Object storage with zero egress fees
 - **KV Storage** — High‑performance key‑value cache
-- **Analytics Engine** — Event analytics and observability
+- **better‑auth** — Edge‑compatible authentication (credentials + Google OAuth)
 - **Tailwind CSS** — Utility‑first CSS framework
 
 ### Tooling
 
+- **Vite** — Next‑gen frontend build tool (via vinext)
 - **pnpm** — Fast, disk‑efficient package manager
 - **Vitest** — Modern unit test framework
 - **ESLint + Prettier** — Code quality and formatting
@@ -55,7 +59,7 @@ An out‑of‑the‑box Next.js + Cloudflare full‑stack starter integrating Ed
 
 ## 📋 Requirements
 
-- **Node.js** >= 20.0.0 (recommend `nvm`)
+- **Node.js** >= 22.0.0 (recommend `nvm`)
 - **pnpm** >= 8.0.0
 - **Cloudflare account**
 - **Git**
@@ -126,16 +130,15 @@ See **[Development Guide](./docs/DEVELOPMENT.md)** for details.
 
 ```bash
 # Development
-pnpm dev                    # Next.js dev server
-pnpm run cf:dev             # Cloudflare full‑stack dev
+pnpm dev                    # vinext dev server (Vite + Workers runtime)
 
 # Testing
 pnpm test                   # Run all tests
 pnpm run test:watch         # Watch mode
 
 # Build & Deploy
-pnpm build                  # Build app
-pnpm run pages:deploy       # Deploy to Cloudflare
+pnpm build                  # Build app (vinext + Vite)
+pnpm deploy                 # Deploy to Cloudflare Workers
 ```
 
 ## 🔄 CI/CD
@@ -210,16 +213,10 @@ Details on binding names, secrets, and seeding: [docs/ENVIRONMENTS.md](./docs/EN
 
 Summary under Workers Free plan (subject to official docs):
 
-- Pages
-  - Projects (sites): 100
-  - Builds per month: 500
-  - Concurrent builds: 1
-  - Custom domains: 100 per project
-  - Bandwidth/static requests: unlimited
-
-- Pages Functions (shares quotas with Workers)
+- Workers
   - Daily requests: 100,000
   - CPU time: 10 ms per request
+  - Workers: unlimited
 
 - D1 Database
   - Databases: 10
@@ -281,9 +278,9 @@ Troubleshooting docs:
 
 ## 🔗 References
 
-- [Next.js](https://nextjs.org/docs) | [Cloudflare Pages](https://pages.cloudflare.com/)
-- [D1 Database](https://developers.cloudflare.com/d1/) | [R2 Storage](https://developers.cloudflare.com/r2/)
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- [vinext](https://github.com/cloudflare/vinext) | [Next.js](https://nextjs.org/docs) | [Vite](https://vite.dev/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) | [D1 Database](https://developers.cloudflare.com/d1/) | [R2 Storage](https://developers.cloudflare.com/r2/)
+- [better-auth](https://www.better-auth.com/) | [Prisma](https://www.prisma.io/docs)
 
 ## 🎯 Start Building
 

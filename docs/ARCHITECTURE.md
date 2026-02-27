@@ -2,14 +2,14 @@
 
 ## Overview
 
-This project is a Next.js + Cloudflare full‑stack template with enterprise‑grade architecture features.
+This project is a Next.js + Cloudflare Workers full‑stack template powered by vinext (Vite‑based Next.js reimplementation), with enterprise‑grade architecture features.
 
 ## Diagram
 
 ```mermaid
 graph TD
-  A[Client] -->|HTTPS| B[Cloudflare Pages Edge Network]
-  B --> C[Next.js App Router (Edge Runtime)]
+  A[Client] -->|HTTPS| B[Cloudflare Workers Edge Network]
+  B --> C[Next.js App Router via vinext (Vite)]
   C --> D[API Middleware<br/>Logging & Error Handling]
   D --> E[Repository Factory]
   E --> F[Prisma Client<br/>(D1 Adapter)]
@@ -28,16 +28,17 @@ Deploy Workflow]
 
 **Data flow**:
 
-- Requests pass Cloudflare Pages’ global network to the Next.js app on Edge Runtime.
-- API routes go through middleware (logging, errors, rate limiting); repositories access D1, R2, KV.
-- CI handles tests/builds; deploy workflow publishes to Pages after verification.
+- Requests pass Cloudflare Workers' global edge network to the Next.js app via vinext.
+- API routes go through proxy (i18n, auth, CORS, CSRF); repositories access D1, R2, KV.
+- CI handles tests/builds; deploy workflow publishes to Workers after verification.
 
 ## Stack
 
 ### Core
 
-- **Next.js 15.5.2** — React with App Router
-- **Cloudflare Pages** — Edge Runtime platform
+- **vinext** — Vite‑based Next.js reimplementation for Cloudflare Workers
+- **Next.js 15.5.2** — React with App Router (RSC)
+- **Cloudflare Workers** — Native edge deployment platform
 - **TypeScript** — Typed JavaScript
 
 ### Data Layer

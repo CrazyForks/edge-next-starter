@@ -167,7 +167,7 @@ When deploying to production:
    https://your-domain.com/api/auth/callback/google
    ```
 
-2. Configure environment variables in Cloudflare Pages (prefer `wrangler secret put ...` for sensitive values):
+2. Configure secrets via `wrangler secret put`:
    ```
    NEXTAUTH_URL=https://your-domain.com
    GOOGLE_CLIENT_ID=your-client-id

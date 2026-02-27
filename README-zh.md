@@ -4,13 +4,15 @@
 
 <div align="center">
 
+![vinext](https://img.shields.io/badge/vinext-Vite_+_Next.js-646CFF?style=flat&logo=vite)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?style=flat&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=flat&logo=typescript)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat&logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.17-38B2AC?style=flat&logo=tailwind-css)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-F38020?style=flat&logo=cloudflare)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat&logo=cloudflare)
 ![Prisma](https://img.shields.io/badge/Prisma-6.17.1-2D3748?style=flat&logo=prisma)
-![Node.js](https://img.shields.io/badge/Node.js-≥20.0.0-339933?style=flat&logo=node.js)
+![better-auth](https://img.shields.io/badge/better--auth-Edge_Compatible-8B5CF6?style=flat)
+![Node.js](https://img.shields.io/badge/Node.js-≥22.0.0-339933?style=flat&logo=node.js)
 ![pnpm](https://img.shields.io/badge/pnpm-8.15.0-F69220?style=flat&logo=pnpm)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
@@ -18,24 +20,26 @@
 
 ---
 
-# Next.js + Cloudflare 全栈模板
+# Next.js + Cloudflare Workers 全栈模板 (vinext)
 
-一个开箱即用的 Next.js + Cloudflare 全栈项目模板，集成 Edge Runtime、D1 数据库、R2 存储、Analytics Engine 事件分析和完整的 CI/CD 流程。
+一个生产就绪的 Next.js + Cloudflare Workers 全栈项目模板，基于 [vinext](https://github.com/cloudflare/vinext)（Vite 驱动的 Next.js 重新实现）构建。集成 D1 数据库、R2 存储、KV 缓存、better-auth 认证、next-intl 国际化和完整的 CI/CD 流程 — 所有代码原生运行在 Cloudflare Workers 全球边缘网络上。
 
 ## ✨ 特性
 
 ### 核心技术栈
 
-- **Next.js 15.5.2** - 使用 App Router 和 TypeScript
-- **Cloudflare Pages** - Edge Runtime 部署
+- **[vinext](https://github.com/cloudflare/vinext)** - 基于 Vite 的 Next.js 重新实现（构建速度提升 4 倍，包体积缩小 57%）
+- **Next.js 15.5.2** - App Router + RSC（React Server Components）
+- **Cloudflare Workers** - 原生边缘部署（非 Pages）
 - **D1 Database** - 边缘端 SQLite 数据库
 - **R2 Storage** - 零出站费用的对象存储
 - **KV Storage** - 高性能键值缓存
-- **Analytics Engine** - 事件分析和监控
+- **better-auth** - Edge 兼容的认证系统（邮箱密码 + Google OAuth）
 - **Tailwind CSS** - 实用优先的 CSS 框架
 
 ### 开发工具
 
+- **Vite** - 下一代前端构建工具（通过 vinext）
 - **pnpm** - 快速、节省磁盘空间的包管理器
 - **Vitest** - 现代化的单元测试框架
 - **ESLint + Prettier** - 代码规范和格式化
@@ -55,7 +59,7 @@
 
 ## 📋 前置要求
 
-- **Node.js** >= 20.0.0 (推荐使用 nvm 管理版本)
+- **Node.js** >= 22.0.0 (推荐使用 nvm 管理版本)
 - **pnpm** >= 8.0.0
 - **Cloudflare 账户**
 - **Git**
@@ -126,16 +130,15 @@ cloudflare-worker-template/
 
 ```bash
 # 开发
-pnpm dev                    # Next.js 开发服务器
-pnpm run cf:dev             # Cloudflare 完整功能开发
+pnpm dev                    # vinext 开发服务器（Vite + Workers 运行时）
 
 # 测试
 pnpm test                   # 运行所有测试
 pnpm run test:watch         # 监听模式
 
 # 构建和部署
-pnpm build                  # 构建应用
-pnpm run pages:deploy       # 部署到 Cloudflare
+pnpm build                  # 构建应用（vinext + Vite）
+pnpm deploy                 # 部署到 Cloudflare Workers
 ```
 
 ## 🔄 持续集成/部署
@@ -210,16 +213,10 @@ pnpm run test:coverage      # 查看覆盖率
 
 以下为在 Cloudflare Workers Free 计划下的主要免费额度概览（以官方当前文档为准，可能随时调整）：
 
-- Pages（部署与托管）
-  - 项目（站点）：100 个
-  - 每月构建次数：500 次
-  - 并发构建：1 个
-  - 自定义域名：每个项目 100 个
-  - 带宽/静态请求：无限制
-
-- Pages Functions（后端逻辑，与 Workers 共享额度）
+- Workers
   - 每日请求：100,000 次
   - CPU 时间：每次请求 10 毫秒
+  - Workers 数量：无限制
 
 - D1 Database（数据库）
   - 数据库数量：10 个
@@ -281,9 +278,9 @@ pnpm run test:coverage      # 查看覆盖率
 
 ## 🔗 技术文档
 
-- [Next.js](https://nextjs.org/docs) | [Cloudflare Pages](https://pages.cloudflare.com/)
-- [D1 Database](https://developers.cloudflare.com/d1/) | [R2 Storage](https://developers.cloudflare.com/r2/)
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- [vinext](https://github.com/cloudflare/vinext) | [Next.js](https://nextjs.org/docs) | [Vite](https://vite.dev/)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/) | [D1 Database](https://developers.cloudflare.com/d1/) | [R2 Storage](https://developers.cloudflare.com/r2/)
+- [better-auth](https://www.better-auth.com/) | [Prisma](https://www.prisma.io/docs)
 
 ## 🎯 快速开始业务开发
 

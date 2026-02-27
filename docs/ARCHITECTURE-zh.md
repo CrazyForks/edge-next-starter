@@ -2,14 +2,14 @@
 
 ## 架构概览
 
-本项目是一个基于 Next.js + Cloudflare 的全栈应用模板，具有完整的企业级架构特性。
+本项目是一个基于 Next.js + Cloudflare Workers 的全栈应用模板，通过 vinext（基于 Vite 的 Next.js 重新实现）构建，具有完整的企业级架构特性。
 
 ## 架构图
 
 ```mermaid
 graph TD
-  A[客户端] -->|HTTPS 请求| B[Cloudflare Pages 边缘网络]
-  B --> C[Next.js App Router (Edge Runtime)]
+  A[客户端] -->|HTTPS 请求| B[Cloudflare Workers 边缘网络]
+  B --> C[Next.js App Router via vinext (Vite)]
   C --> D[API 中间件<br/>日志 & 错误处理]
   D --> E[Repository Factory]
   E --> F[Prisma Client<br/>(D1 Adapter)]
@@ -28,16 +28,17 @@ CI 工作流]
 
 **数据流说明**：
 
-- 客户端的所有请求都会先通过 Cloudflare Pages 的全球网络，再进入部署在 Edge Runtime 上的 Next.js 应用。
-- API 路由统一经过中间件链路，负责请求日志、错误处理和速率限制，然后由 Repository 层协调对 D1、R2、KV 的访问。
-- CI 工作流负责测试与构建，部署工作流在通过验证后将构建产出推送到 Cloudflare Pages。
+- 客户端的所有请求都会先通过 Cloudflare Workers 的全球边缘网络，再进入由 vinext 驱动的 Next.js 应用。
+- API 路由统一经过 proxy 链路（i18n、认证、CORS、CSRF），然后由 Repository 层协调对 D1、R2、KV 的访问。
+- CI 工作流负责测试与构建，部署工作流在通过验证后将构建产出推送到 Cloudflare Workers。
 
 ## 技术栈
 
 ### 核心框架
 
-- **Next.js 15.5.2** - React 框架，使用 App Router
-- **Cloudflare Pages** - Edge Runtime 部署平台
+- **vinext** - 基于 Vite 的 Next.js 重新实现，专为 Cloudflare Workers 优化
+- **Next.js 15.5.2** - React 框架，使用 App Router (RSC)
+- **Cloudflare Workers** - 原生边缘部署平台
 - **TypeScript** - 类型安全的 JavaScript 超集
 
 ### 数据层

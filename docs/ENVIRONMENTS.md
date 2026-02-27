@@ -4,30 +4,30 @@ This document summarizes core configuration across local, test, and production e
 
 ## Environments Overview
 
-| Environment | Config file          | Database name                      | R2 binding | KV binding | Branch                | Key command                  |
-| ----------- | -------------------- | ---------------------------------- | ---------- | ---------- | --------------------- | ---------------------------- |
-| Local dev   | `wrangler.toml`      | `cloudflare-worker-template-local` | `BUCKET`   | `KV`       | manual                | `pnpm run cf:dev`            |
-| Test        | `wrangler.test.toml` | `cloudflare-worker-template-test`  | `BUCKET`   | `KV`       | `develop` / `preview` | `pnpm run pages:deploy:test` |
-| Production  | `wrangler.prod.toml` | `cloudflare-worker-template-prod`  | `BUCKET`   | `KV`       | `main`                | `pnpm run pages:deploy:prod` |
+| Environment | Config file          | Database name                      | R2 binding | KV binding | Branch                | Key command                         |
+| ----------- | -------------------- | ---------------------------------- | ---------- | ---------- | --------------------- | ----------------------------------- |
+| Local dev   | `wrangler.toml`      | `cloudflare-worker-template-local` | `BUCKET`   | `KV`       | manual                | `pnpm dev`                          |
+| Test        | `wrangler.test.toml` | `cloudflare-worker-template-test`  | `BUCKET`   | `KV`       | `develop` / `preview` | `pnpm deploy` (test deploys via CI) |
+| Production  | `wrangler.prod.toml` | `cloudflare-worker-template-prod`  | `BUCKET`   | `KV`       | `main`                | `pnpm deploy` (prod deploys via CI) |
 
-> 📌 Note: Cloudflare Pages and Workers inject env vars based on bindings in `wrangler.*.toml`. Code reads `process.env.BUCKET`, `process.env.DB`, and `process.env.KV`. Keep names consistent.
+> 📌 Note: Cloudflare Workers inject env vars based on bindings in `wrangler.*.toml`. In Workers, secrets and bindings are accessed via `import { env } from 'cloudflare:workers'`, NOT `process.env`. Keep binding names consistent.
 
 ## Required Secrets
 
-Define the following secrets in repository **Settings → Secrets and variables → Actions** so that CI/CD workflows can create databases, run migrations, and deploy pages:
+Define the following secrets in repository **Settings → Secrets and variables → Actions** so that CI/CD workflows can create databases, run migrations, and deploy Workers:
 
-| Name                                        | Purpose                                                           |
-| ------------------------------------------- | ----------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`                      | Authorize Wrangler to create/migrate D1, R2, KV and deploy Pages  |
-| `CLOUDFLARE_ACCOUNT_ID`                     | Identify the Cloudflare account for Wrangler API calls            |
-| `NEXTAUTH_SECRET`                           | Required by NextAuth JWT sessions (set via `wrangler secret put`) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials used by NextAuth (must be set together)  |
+| Name                                        | Purpose                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`                      | Authorize Wrangler to create/migrate D1, R2, KV and deploy Workers |
+| `CLOUDFLARE_ACCOUNT_ID`                     | Identify the Cloudflare account for Wrangler API calls             |
+| `BETTER_AUTH_SECRET` or `NEXTAUTH_SECRET`   | Required by auth JWT sessions (set via `wrangler secret put`)      |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials used by auth (must be set together)       |
 
-Add extra third‑party secrets here and reference them in `[vars]` of `wrangler.*.toml`. For Google OAuth, remember Cloudflare Pages separates Preview/Production environments—configure both Client ID/Secret pairs accordingly.
+Add extra third‑party secrets here and reference them in `[vars]` of `wrangler.*.toml`. For Google OAuth, remember to configure via `wrangler secret put` for each Workers environment—configure both Client ID/Secret pairs accordingly.
 
-### NEXTAUTH_SECRET Configuration
+### BETTER_AUTH_SECRET or NEXTAUTH_SECRET Configuration
 
-The `NEXTAUTH_SECRET` is a critical security key used by NextAuth.js to encrypt and sign JWT tokens. Proper configuration is essential for authentication security.
+The `BETTER_AUTH_SECRET` or `NEXTAUTH_SECRET` is a critical security key used to encrypt and sign JWT tokens. Proper configuration is essential for authentication security.
 
 #### Generating a Secure Secret
 
@@ -54,20 +54,22 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 **CI/CD Builds:**
 
-- CI builds automatically skip NEXTAUTH_SECRET validation
+- CI builds automatically skip BETTER_AUTH_SECRET or NEXTAUTH_SECRET validation
 - The build process uses `CI=true` flag to allow default values during compilation
 - Runtime validation still enforces production requirements
 
-**Test/Production Deployment (Cloudflare Pages):**
+**Test/Production Deployment (Cloudflare Workers):**
 
 1. Generate a unique secret key using one of the methods above
-2. Configure in Cloudflare Pages Dashboard:
-   - Navigate to your Pages project
-   - Go to `Settings` → `Environment variables`
-   - Add variable:
-     - **Name**: `NEXTAUTH_SECRET`
-     - **Value**: (paste your generated secret)
-     - **Environment**: Select `Production` and/or `Preview` as needed
+2. Configure via `wrangler secret put`:
+
+   ```bash
+   # For test environment
+   wrangler secret put BETTER_AUTH_SECRET --env test
+
+   # For production environment
+   wrangler secret put BETTER_AUTH_SECRET --env production
+   ```
 
 **Security Best Practices:**
 
@@ -81,7 +83,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 **Validation Behavior:**
 
-The application validates `NEXTAUTH_SECRET` based on the runtime environment:
+The application validates `BETTER_AUTH_SECRET` or `NEXTAUTH_SECRET` based on the runtime environment:
 
 - **Development** (`NODE_ENV=development`): Accepts default value
 - **CI Builds** (`CI=true`): Skips validation during build phase
@@ -91,10 +93,10 @@ The application validates `NEXTAUTH_SECRET` based on the runtime environment:
 
 If you see the error "NEXTAUTH_SECRET must be configured for production environments":
 
-1. Ensure you've set `NEXTAUTH_SECRET` in Cloudflare Pages environment variables
-2. Verify the environment variable is set for the correct environment (Production/Preview)
+1. Ensure you've set `BETTER_AUTH_SECRET` or `NEXTAUTH_SECRET` via `wrangler secret put`
+2. Verify the secret is set for the correct Workers environment
 3. Check that you're not using the default `dev-secret` value
-4. Redeploy your application after updating the environment variable
+4. Redeploy your application after updating the secret
 
 ## Bindings Checklist
 

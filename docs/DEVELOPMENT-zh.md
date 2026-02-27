@@ -40,11 +40,8 @@ cloudflare-worker-template/
 ### 1. 本地开发
 
 ```bash
-# 快速 UI 开发（无 Cloudflare 功能）
+# 本地开发（在 Workers 运行时中运行，包含 Cloudflare 绑定）
 pnpm dev
-
-# 完整功能开发（含 Cloudflare）
-pnpm build && pnpm run pages:build && pnpm run cf:dev
 ```
 
 ### 2. 代码规范

@@ -8,7 +8,7 @@
 - [ ] `pnpm test`
 - [ ] `pnpm run type-check`
 - [ ] `pnpm run lint`
-- [ ] `pnpm run cf:dev` (if applicable)
+- [ ] `pnpm dev` (if applicable)
 
 ## Deployment
 
