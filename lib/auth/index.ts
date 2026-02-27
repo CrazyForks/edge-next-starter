@@ -109,8 +109,9 @@ export const auth = betterAuth({
 
   advanced: {
     database: {
-      // Use autoincrement integer IDs to match existing schema
-      generateId: false,
+      // Use autoincrement integer IDs to match existing schema.
+      // useNumberId enables String↔Int ID conversion in better-auth's adapter layer.
+      useNumberId: true,
     },
   },
 

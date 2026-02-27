@@ -4,9 +4,10 @@
  * Problem: better-auth internally uses Date objects for all date fields,
  * but our Prisma schema uses Int (Unix timestamps in seconds) for D1/SQLite.
  *
- * Solution: Proxy the PrismaClient to intercept auth-model operations:
- * - Write operations: Convert Date → Unix timestamp (seconds)
- * - Read operations: Convert Unix timestamp → Date (for known date fields)
+ * Solution: Proxy the PrismaClient to intercept ALL auth-model operations:
+ * - Input: Recursively convert Date → Unix timestamp (seconds) in all args
+ *   (data, where, update, create, etc.)
+ * - Output: Convert Unix timestamp → Date for known date fields in results
  *
  * This avoids schema migrations and keeps the existing Int-based schema intact.
  */
@@ -40,15 +41,38 @@ function unixToDate(timestamp: number): Date {
   return new Date(timestamp * 1000);
 }
 
-/** Convert Date objects in data to Unix timestamps (seconds) */
-function convertInputDates(data: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...data };
-  for (const [key, value] of Object.entries(result)) {
-    if (value instanceof Date) {
-      result[key] = dateToUnix(value);
-    }
+/**
+ * Fields where better-auth may pass a boolean `true` but the schema expects
+ * a Unix timestamp. Example: `emailVerified: true` → current timestamp.
+ */
+const BOOLEAN_TO_TIMESTAMP_FIELDS = new Set(['emailVerified']);
+
+/**
+ * Recursively convert incompatible types in the entire args tree:
+ * - Date objects → Unix timestamps (seconds)
+ * - Boolean `true` on known fields → current Unix timestamp
+ *
+ * Handles nested structures like `where: { expires: { lt: new Date() } }`.
+ */
+function deepConvertInputs(obj: unknown, parentKey?: string): unknown {
+  if (obj instanceof Date) {
+    return dateToUnix(obj);
   }
-  return result;
+  // Convert boolean `true` to current timestamp for specific fields
+  if (typeof obj === 'boolean' && parentKey && BOOLEAN_TO_TIMESTAMP_FIELDS.has(parentKey)) {
+    return obj ? Math.floor(Date.now() / 1000) : null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepConvertInputs(item));
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      result[key] = deepConvertInputs(value, key);
+    }
+    return result;
+  }
+  return obj;
 }
 
 /** Convert Unix timestamps back to Date objects for known date fields */
@@ -78,7 +102,21 @@ function resolveModelKey(prop: string): string | null {
   return null;
 }
 
-const WRITE_OPS = new Set(['create', 'update', 'updateMany', 'upsert', 'createMany']);
+/** All Prisma operations that may contain Date values in args */
+const ALL_OPS = new Set([
+  'create',
+  'createMany',
+  'update',
+  'updateMany',
+  'upsert',
+  'delete',
+  'deleteMany',
+  'findFirst',
+  'findUnique',
+  'findMany',
+  'count',
+  'aggregate',
+]);
 const SINGLE_RESULT_OPS = new Set(['create', 'update', 'upsert', 'findFirst', 'findUnique']);
 const MULTI_RESULT_OPS = new Set(['findMany']);
 
@@ -103,29 +141,16 @@ export function createAuthPrismaProxy<T>(prisma: T): T {
 
           const methodStr = methodName as string;
 
-          // Only intercept operations that need date conversion
-          if (
-            !WRITE_OPS.has(methodStr) &&
-            !SINGLE_RESULT_OPS.has(methodStr) &&
-            !MULTI_RESULT_OPS.has(methodStr)
-          ) {
+          // Only intercept known Prisma operations
+          if (!ALL_OPS.has(methodStr)) {
             return method.bind(modelTarget);
           }
 
           return async function (this: unknown, ...args: any[]) {
-            const firstArg = args[0] as Record<string, any> | undefined;
-
-            // Convert Dates in write data
-            if (WRITE_OPS.has(methodStr) && firstArg) {
-              if (firstArg.data && typeof firstArg.data === 'object') {
-                firstArg.data = convertInputDates(firstArg.data as Record<string, unknown>);
-              }
-              if (firstArg.update && typeof firstArg.update === 'object') {
-                firstArg.update = convertInputDates(firstArg.update as Record<string, unknown>);
-              }
-              if (firstArg.create && typeof firstArg.create === 'object') {
-                firstArg.create = convertInputDates(firstArg.create as Record<string, unknown>);
-              }
+            // Deep-convert all incompatible types in the entire args tree
+            // Handles data, where, create, update, orderBy, etc.
+            if (args[0] && typeof args[0] === 'object') {
+              args[0] = deepConvertInputs(args[0]);
             }
 
             // Call original method

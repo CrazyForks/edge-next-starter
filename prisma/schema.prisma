@@ -78,7 +78,7 @@ model Session {
 
 // Email verification token table
 model VerificationToken {
-  id         String?  // better-auth: unique identifier
+  id         Int      @id @default(autoincrement())
   identifier String
   token      String   @unique
   expires    Int      // Expiration timestamp
